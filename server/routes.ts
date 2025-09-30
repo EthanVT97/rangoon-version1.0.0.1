@@ -5,21 +5,32 @@ import { storage } from "./storage";
 import { excelParser } from "./services/excelParser";
 import { dataValidator } from "./services/validator";
 import { getERPNextClient } from "./services/erpnextClient";
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        file.mimetype === "application/vnd.ms-excel") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only .xlsx and .xls files are allowed"));
-    }
-  },
-});
+import { db } from "./database"; // Assuming db is imported from a database configuration file
+import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./schema"; // Assuming schema holds table definitions
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Environment validation for production
+  const requiredEnvVars = ['DATABASE_URL'];
+  const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+  if (missingEnvVars.length > 0) {
+    console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  }
+
+  // File upload configuration
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+          file.mimetype === "application/vnd.ms-excel") {
+        cb(null, true);
+      } else {
+        cb(new Error("Only .xlsx and .xls files are allowed"));
+      }
+    },
+  });
+
   // Upload and process Excel file
   app.post("/api/upload-excel", upload.single("file"), async (req, res) => {
     try {
@@ -212,23 +223,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check database health
+  // Health check endpoints
   app.get("/api/health/database", async (req, res) => {
     try {
-      const startTime = Date.now();
-      await storage.getApiLogs(1);
-      const responseTime = Date.now() - startTime;
+      const start = Date.now();
 
-      res.json({
-        success: true,
-        message: "Database connection healthy",
-        responseTime
+      // Test basic connection
+      await db.select().from(configuration).limit(1);
+
+      // Test all table accessibility
+      const tables = await Promise.all([
+        db.select().from(stagingErpnextImports).limit(1),
+        db.select().from(apiLogs).limit(1),
+        db.select().from(excelTemplates).limit(1)
+      ]);
+
+      const responseTime = Date.now() - start;
+      res.json({ 
+        success: true, 
+        message: "Database connection successful",
+        responseTime,
+        tablesAccessible: true
       });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        responseTime: Date.now() - Date.now()
+    } catch (error) {
+      console.error("Database health check failed:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Database connection failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+        tablesAccessible: false
       });
     }
   });
@@ -251,52 +274,75 @@ async function processImport(stagingId: string, module: string, data: Record<str
       const record = data[i];
       let response;
 
-      switch (module) {
-        case "Item":
-          response = await client.createItem(record);
-          break;
-        case "Customer":
-          response = await client.createCustomer(record);
-          break;
-        case "Sales Order":
-          response = await client.createSalesOrder(record);
-          break;
-        case "Sales Invoice":
-          response = await client.createSalesInvoice(record);
-          break;
-        case "Payment Entry":
-          response = await client.createPaymentEntry(record);
-          break;
-        default:
-          throw new Error(`Unsupported module: ${module}`);
-      }
+      try {
+        switch (module) {
+          case "Item":
+            response = await client.createItem(record);
+            break;
+          case "Customer":
+            response = await client.createCustomer(record);
+            break;
+          case "Sales Order":
+            response = await client.createSalesOrder(record);
+            break;
+          case "Sales Invoice":
+            response = await client.createSalesInvoice(record);
+            break;
+          case "Payment Entry":
+            response = await client.createPaymentEntry(record);
+            break;
+          default:
+            throw new Error(`Unsupported module: ${module}`);
+        }
 
-      if (response.success) {
-        successCount++;
-      } else {
+        if (response.success) {
+          successCount++;
+        } else {
+          failureCount++;
+          errors.push({
+            row: i + 2,
+            data: record,
+            error: response.error,
+          });
+        }
+
+        // Log individual record processing
+        await storage.createApiLog({
+          stagingId,
+          filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
+          module,
+          endpoint: `/api/resource/${module}`,
+          method: "POST",
+          recordCount: 1,
+          successCount: response.success ? 1 : 0,
+          failureCount: response.success ? 0 : 1,
+          status: response.success ? "success" : "failed",
+          erpnextResponse: response.data,
+          errors: response.success ? null : [{ message: response.error }],
+          responseTime: response.responseTime,
+        });
+      } catch (recordError: any) {
         failureCount++;
         errors.push({
           row: i + 2,
           data: record,
-          error: response.error,
+          error: recordError.message || "Unknown error during record processing",
+        });
+        await storage.createApiLog({
+          stagingId,
+          filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
+          module,
+          endpoint: `/api/resource/${module}`,
+          method: "POST",
+          recordCount: 1,
+          successCount: 0,
+          failureCount: 1,
+          status: "failed",
+          erpnextResponse: null,
+          errors: [{ message: recordError.message || "Unknown error during record processing" }],
+          responseTime: recordError.responseTime || 0,
         });
       }
-
-      // Log individual record processing
-      await storage.createApiLog({
-        stagingId,
-        filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
-        module,
-        endpoint: `/api/resource/${module}`,
-        method: "POST",
-        recordCount: 1,
-        successCount: response.success ? 1 : 0,
-        failureCount: response.success ? 0 : 1,
-        status: response.success ? "success" : "failed",
-        erpnextResponse: response.data,
-        errors: response.success ? null : [{ message: response.error }],
-        responseTime: response.responseTime,
-      });
     }
 
     const finalStatus = failureCount === 0 ? "completed" : "failed";
@@ -315,10 +361,25 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: finalStatus,
       erpnextResponse: { summary: `Processed ${data.length} records` },
       errors: errors.length > 0 ? errors : null,
-      responseTime: 0,
+      responseTime: 0, // This might need to be calculated if relevant for summary
     });
   } catch (error: any) {
     await storage.updateStagingImportStatus(stagingId, "failed", new Date());
     console.error("Error processing import:", error);
+    // Ensure a log entry for the overall failure if not already created
+    await storage.createApiLog({
+      stagingId,
+      filename: "unknown", // Filename might not be available in this catch block
+      module,
+      endpoint: `/api/resource/${module}`,
+      method: "POST",
+      recordCount: data.length,
+      successCount: 0,
+      failureCount: data.length,
+      status: "failed",
+      erpnextResponse: null,
+      errors: [{ message: `Overall processing failed: ${error.message || "Unknown error"}` }],
+      responseTime: 0,
+    });
   }
 }

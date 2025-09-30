@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -135,7 +134,7 @@ export default function LiveChatWidget() {
                     <Bot className="w-4 h-4 text-primary" />
                   </div>
                 )}
-                
+
                 <div
                   className={cn(
                     "max-w-[75%] p-3 rounded-lg text-sm whitespace-pre-line font-myanmar",
@@ -170,7 +169,7 @@ export default function LiveChatWidget() {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 
