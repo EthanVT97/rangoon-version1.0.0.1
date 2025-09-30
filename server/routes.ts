@@ -161,6 +161,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get ERPNext configuration
+  app.get("/api/config/erpnext", async (req, res) => {
+    try {
+      const baseUrl = await storage.getConfiguration("erpnext_base_url");
+      const apiKey = await storage.getConfiguration("erpnext_api_key");
+      const apiSecret = await storage.getConfiguration("erpnext_api_secret");
+
+      res.json({
+        baseUrl: baseUrl || "",
+        apiKey: apiKey || "",
+        apiSecret: apiSecret || "",
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save ERPNext configuration
+  app.post("/api/config/erpnext", async (req, res) => {
+    try {
+      const { baseUrl, apiKey, apiSecret } = req.body;
+
+      if (!baseUrl || !apiKey || !apiSecret) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      await storage.setConfiguration("erpnext_base_url", baseUrl, "ERPNext base URL");
+      await storage.setConfiguration("erpnext_api_key", apiKey, "ERPNext API key");
+      await storage.setConfiguration("erpnext_api_secret", apiSecret, "ERPNext API secret");
+
+      res.json({ message: "Configuration saved successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

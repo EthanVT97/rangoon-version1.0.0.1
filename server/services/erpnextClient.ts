@@ -21,29 +21,59 @@ export interface ERPNextHealthStatus {
 }
 
 class ERPNextClient {
-  private client: AxiosInstance;
+  private client: AxiosInstance | null = null;
   private baseURL: string = '';
   private apiKey: string = '';
   private apiSecret: string = '';
+  private initialized: boolean = false;
 
-  constructor() {
+  async initialize() {
+    if (this.initialized) return;
+
+    // Try environment variables first (for backward compatibility)
     this.baseURL = process.env.ERPNEXT_BASE_URL || '';
     this.apiKey = process.env.ERPNEXT_API_KEY || '';
     this.apiSecret = process.env.ERPNEXT_API_SECRET || '';
 
-    this.client = axios.create({
-      baseURL: this.baseURL,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${this.apiKey}:${this.apiSecret}`
-      }
-    });
+    // If not in env, try database
+    if (!this.baseURL || !this.apiKey || !this.apiSecret) {
+      const baseUrl = await storage.getConfiguration("erpnext_base_url");
+      const apiKey = await storage.getConfiguration("erpnext_api_key");
+      const apiSecret = await storage.getConfiguration("erpnext_api_secret");
+
+      this.baseURL = baseUrl || this.baseURL;
+      this.apiKey = apiKey || this.apiKey;
+      this.apiSecret = apiSecret || this.apiSecret;
+    }
+
+    if (this.baseURL && this.apiKey && this.apiSecret) {
+      this.client = axios.create({
+        baseURL: this.baseURL,
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${this.apiKey}:${this.apiSecret}`
+        }
+      });
+    }
+
+    this.initialized = true;
   }
 
   async checkHealth(): Promise<ERPNextHealthStatus> {
     const startTime = Date.now();
     try {
+      await this.initialize();
+      
+      if (!this.client) {
+        return {
+          success: false,
+          error: 'ERPNext client not configured. Please add your API credentials in Settings.',
+          statusCode: 500,
+          responseTime: Date.now() - startTime
+        };
+      }
+
       const response = await this.client.get('/api/method/ping');
       const responseTime = Date.now() - startTime;
       
@@ -90,6 +120,16 @@ class ERPNextClient {
   private async createRecord(doctype: string, data: Record<string, any>): Promise<ERPNextResponse> {
     const startTime = Date.now();
     try {
+      await this.initialize();
+      
+      if (!this.client) {
+        return {
+          success: false,
+          error: 'ERPNext client not configured. Please add your API credentials in Settings.',
+          responseTime: Date.now() - startTime
+        };
+      }
+
       const response = await this.client.post(`/api/resource/${doctype}`, data);
       const responseTime = Date.now() - startTime;
       
