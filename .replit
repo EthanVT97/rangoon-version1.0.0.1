@@ -7,8 +7,8 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "npm install && npm run build"]
-run = ["sh", "-c", "npm start"]
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
 
 [[ports]]
 localPort = 5000
@@ -22,14 +22,19 @@ externalPort = 3001
 localPort = 40595
 externalPort = 3000
 
+[[ports]]
+localPort = 41615
+externalPort = 3002
+
 [env]
 PORT = "5000"
 
 [agent]
 integrations = ["javascript_supabase:1.0.0"]
+expertMode = true
 
 [workflows]
-runButton = "Dev Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
