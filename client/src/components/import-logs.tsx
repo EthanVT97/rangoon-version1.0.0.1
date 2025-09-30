@@ -3,17 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Download, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ApiLog } from "@shared/schema";
 
 export default function ImportLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: logs } = useQuery({
+  const { data: logs } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs", statusFilter],
     refetchInterval: 5000,
   });
 
-  const filteredLogs = logs?.filter((log: any) =>
+  const filteredLogs = logs?.filter((log) =>
     log.filename.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 

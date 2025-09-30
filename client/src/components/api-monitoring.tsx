@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, AlertTriangle } from "lucide-react";
+import type { ApiLog } from "@shared/schema";
 
 export default function APIMonitoring() {
   const { data: health } = useQuery({
@@ -7,12 +8,12 @@ export default function APIMonitoring() {
     refetchInterval: 30000,
   });
 
-  const { data: logs } = useQuery({
+  const { data: logs } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs"],
   });
 
-  const avgResponseTime = logs?.reduce((acc: number, log: any) => acc + (log.responseTime || 0), 0) / (logs?.length || 1);
-  const successRate = logs?.filter((log: any) => log.status === "success").length / (logs?.length || 1) * 100;
+  const avgResponseTime = (logs?.reduce((acc, log) => acc + (log.responseTime || 0), 0) || 0) / (logs?.length || 1);
+  const successRate = ((logs?.filter((log) => log.status === "success").length || 0) / (logs?.length || 1)) * 100;
 
   const endpoints = [
     { name: "/api/resource/Item", avgTime: "235ms", status: "healthy" },

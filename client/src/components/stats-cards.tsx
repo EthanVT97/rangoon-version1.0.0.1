@@ -1,8 +1,16 @@
 import { Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+interface StatsData {
+  totalImports: number;
+  successfulImports: number;
+  failedImports: number;
+  processingImports: number;
+  successRate: number;
+}
+
 export default function StatsCards() {
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<StatsData>({
     queryKey: ["/api/stats"],
     refetchInterval: 5000,
   });

@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, AlertCircle, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { ApiLog } from "@shared/schema";
 
 export default function ProcessingStatus() {
-  const { data: logs, refetch } = useQuery({
+  const { data: logs, refetch } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs"],
     refetchInterval: 3000,
   });
 
-  const processingLogs = logs?.filter((log: any) => log.status === "processing") || [];
+  const processingLogs = logs?.filter((log) => log.status === "processing") || [];
   const recentLogs = logs?.slice(0, 3) || [];
 
   return (
