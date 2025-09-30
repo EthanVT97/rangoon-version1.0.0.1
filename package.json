@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && vite build",
+    "build:client": "npm run install:client && cd client && vite build",
     "build:server": "tsc --project tsconfig.server.json",
+    "install:client": "cd client && npm install",
     "start": "node dist/server/index.js",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate:pg",
