@@ -7,6 +7,7 @@ import ProcessingStatus from "@/components/processing-status";
 import ImportLogs from "@/components/import-logs";
 import APIMonitoring from "@/components/api-monitoring";
 import LiveChatWidget from "@/components/live-chat-widget";
+import AutoFixMonitor from "@/components/auto-fix-monitor";
 
 interface HealthStatus {
   success: boolean;
@@ -41,8 +42,8 @@ export default function Dashboard() {
 
               <div className="flex items-center space-x-3">
                 <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
-                  isConnected 
-                    ? "bg-success/10 text-success border-success/20 shadow-sm shadow-success/5" 
+                  isConnected
+                    ? "bg-success/10 text-success border-success/20 shadow-sm shadow-success/5"
                     : "bg-destructive/10 text-destructive border-destructive/20"
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-success animate-pulse" : "bg-destructive"}`} />
@@ -67,9 +68,12 @@ export default function Dashboard() {
         <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
           <StatsCards />
           <UploadSection />
-          <ProcessingStatus />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <ProcessingStatus />
+            <AutoFixMonitor />
+            <APIMonitoring />
+          </div>
           <ImportLogs />
-          <APIMonitoring />
         </div>
 
         <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-auto relative z-10">
@@ -80,7 +84,7 @@ export default function Dashboard() {
                   All rights reserved © Rangoon, Under Development
                 </span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/20 text-success">
                   <div className="w-2 h-2 bg-success rounded-full animate-pulse" />

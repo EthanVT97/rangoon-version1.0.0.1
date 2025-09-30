@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { excelParser } from "./services/excelParser";
 import { dataValidator } from "./services/validator";
 import { getERPNextClient } from "./services/erpnextClient";
+import { autoFixMiddleware } from "./services/autoFixMiddleware";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema";
@@ -196,6 +197,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/config/erpnext", async (req, res) => {
     try {
       const baseUrl = await storage.getConfiguration("erpnext_base_url");
+
+
+  // Get auto-fix strategies and statistics
+  app.get("/api/autofix/strategies", async (req, res) => {
+    try {
+      const strategies = autoFixMiddleware.getStrategies().map(s => ({
+        description: s.description,
+        pattern: s.errorPattern.source
+      }));
+      
+      res.json({
+        strategies,
+        totalStrategies: strategies.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Manually trigger auto-fix for a specific record
+  app.post("/api/autofix/retry", async (req, res) => {
+    try {
+      const { module, data, error } = req.body;
+      
+      if (!module || !data || !error) {
+        return res.status(400).json({ message: "Module, data, and error are required" });
+      }
+      
+      const result = await autoFixMiddleware.processRecord(module, data, error);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
       const apiKey = await storage.getConfiguration("erpnext_api_key");
       const apiSecret = await storage.getConfiguration("erpnext_api_secret");
 
@@ -307,15 +343,27 @@ async function processImport(stagingId: string, module: string, data: Record<str
         if (response.success) {
           successCount++;
         } else {
-          failureCount++;
-          errors.push({
-            row: i + 2,
-            data: record,
-            error: response.error,
-          });
+          // Attempt auto-fix if initial creation failed
+          console.log(`Record failed, attempting auto-fix. Error: ${response.error}`);
+          const autoFixResult = await autoFixMiddleware.processRecord(module, record, response.error || "Unknown error");
+          
+          if (autoFixResult.success) {
+            successCount++;
+            console.log(`Auto-fix successful for row ${i + 2}. Fixes applied: ${autoFixResult.fixesApplied?.join(', ')}`);
+          } else {
+            failureCount++;
+            errors.push({
+              row: i + 2,
+              data: record,
+              error: autoFixResult.error,
+              autoFixAttempted: true,
+              fixesApplied: autoFixResult.fixesApplied
+            });
+          }
         }
 
-        // Log individual record processing
+        // Log individual record processing (moved to after auto-fix attempt)
+        const logSuccess = response.success || (autoFixResult?.success || false);
         await storage.createApiLog({
           stagingId,
           filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
@@ -323,11 +371,15 @@ async function processImport(stagingId: string, module: string, data: Record<str
           endpoint: `/api/resource/${module}`,
           method: "POST",
           recordCount: 1,
-          successCount: response.success ? 1 : 0,
-          failureCount: response.success ? 0 : 1,
-          status: response.success ? "success" : "failed",
-          erpnextResponse: response.data,
-          errors: response.success ? null : [{ message: response.error }],
+          successCount: logSuccess ? 1 : 0,
+          failureCount: logSuccess ? 0 : 1,
+          status: logSuccess ? "success" : "failed",
+          erpnextResponse: logSuccess ? (response.data || autoFixResult?.data) : null,
+          errors: logSuccess ? null : [{
+            message: autoFixResult?.error || response.error,
+            autoFixAttempted: !response.success,
+            fixesApplied: autoFixResult?.fixesApplied
+          }],
           responseTime: response.responseTime,
         });
       } catch (recordError: any) {
