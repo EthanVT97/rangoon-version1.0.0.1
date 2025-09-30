@@ -70,6 +70,16 @@ export default function Dashboard() {
           <ImportLogs />
           <APIMonitoring />
         </div>
+
+        <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-auto">
+          <div className="max-w-[1600px] mx-auto px-6 py-4">
+            <div className="flex items-center justify-center text-sm text-muted-foreground">
+              <span className="font-myanmar">
+                All rights reserved © Rangoon, Under Development
+              </span>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
