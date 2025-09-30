@@ -6,6 +6,7 @@ import UploadSection from "@/components/upload-section";
 import ProcessingStatus from "@/components/processing-status";
 import ImportLogs from "@/components/import-logs";
 import APIMonitoring from "@/components/api-monitoring";
+import LiveChatWidget from "@/components/live-chat-widget";
 
 interface HealthStatus {
   success: boolean;
@@ -81,20 +82,23 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-success/10 border border-success/20 text-success">
+                  <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
                   <span className="text-xs font-medium font-myanmar">
-                    Live Chat Widget - Coming Soon
+                    Live Chat Widget - Active
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground font-myanmar">
-                  Real-Time ChatBot Support
+                  Click bottom-right to chat
                 </div>
               </div>
             </div>
           </div>
         </footer>
       </main>
+
+      {/* Live Chat Widget */}
+      <LiveChatWidget />
     </div>
   );
 }
