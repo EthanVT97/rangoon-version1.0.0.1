@@ -31,6 +31,9 @@ class ERPNextClient {
     if (this.initialized) return;
 
     try {
+      // Reset client first
+      this.client = null;
+      
       // Try environment variables first (for backward compatibility)
       this.baseURL = process.env.ERPNEXT_BASE_URL || '';
       this.apiKey = process.env.ERPNEXT_API_KEY || '';
@@ -42,14 +45,23 @@ class ERPNextClient {
         const apiKey = await storage.getConfiguration("erpnext_api_key");
         const apiSecret = await storage.getConfiguration("erpnext_api_secret");
 
-        this.baseURL = baseUrl || this.baseURL;
-        this.apiKey = apiKey || this.apiKey;
-        this.apiSecret = apiSecret || this.apiSecret;
+        this.baseURL = baseUrl || '';
+        this.apiKey = apiKey || '';
+        this.apiSecret = apiSecret || '';
       }
 
       if (this.baseURL && this.apiKey && this.apiSecret) {
-        // Ensure baseURL doesn't end with slash
+        // Ensure baseURL doesn't end with slash and is valid
         this.baseURL = this.baseURL.replace(/\/$/, '');
+        
+        // Validate URL format
+        try {
+          new URL(this.baseURL);
+        } catch {
+          console.error('Invalid ERPNext base URL format:', this.baseURL);
+          this.initialized = true;
+          return;
+        }
         
         this.client = axios.create({
           baseURL: this.baseURL,
@@ -59,6 +71,10 @@ class ERPNextClient {
             'Authorization': `token ${this.apiKey}:${this.apiSecret}`
           }
         });
+        
+        console.log('ERPNext client initialized successfully');
+      } else {
+        console.log('ERPNext credentials not configured');
       }
 
       this.initialized = true;
@@ -154,6 +170,15 @@ class ERPNextClient {
         responseTime
       };
     }
+  }
+
+  // Method to force reinitialization (called when config changes)
+  forceReinit() {
+    this.initialized = false;
+    this.client = null;
+    this.baseURL = '';
+    this.apiKey = '';
+    this.apiSecret = '';
   }
 }
 
