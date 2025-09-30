@@ -1,7 +1,8 @@
-import { storage } from "./storage";
 
-async function seed() {
-  console.log("Starting database seed...");
+import { storage } from './storage';
+
+async function seedDatabase() {
+  console.log('Seeding database...');
 
   // Seed Excel templates for all ERPNext modules
   const templates = [
@@ -78,20 +79,18 @@ async function seed() {
       templateName: "SalesInvoice_Template.xlsx",
       columns: [
         "customer",
-        "posting_date",
+        "due_date",
         "item_code",
         "qty",
-        "rate",
-        "update_stock"
+        "rate"
       ],
       sampleData: [
         {
           customer: "CUST-001",
-          posting_date: "2025-09-30",
+          due_date: "2025-11-30",
           item_code: "ITEM-001",
           qty: "3",
-          rate: "1000",
-          update_stock: "1"
+          rate: "1000"
         }
       ]
     },
@@ -103,9 +102,7 @@ async function seed() {
         "party_type",
         "party",
         "paid_amount",
-        "received_amount",
-        "posting_date",
-        "mode_of_payment"
+        "received_amount"
       ],
       sampleData: [
         {
@@ -113,9 +110,7 @@ async function seed() {
           party_type: "Customer",
           party: "CUST-001",
           paid_amount: "5000",
-          received_amount: "5000",
-          posting_date: "2025-09-30",
-          mode_of_payment: "Cash"
+          received_amount: "5000"
         }
       ]
     }
@@ -125,26 +120,33 @@ async function seed() {
     try {
       const existing = await storage.getTemplate(template.module);
       if (!existing) {
-        await storage.createTemplate({
-          module: template.module,
-          templateName: template.templateName,
-          columns: template.columns,
-          sampleData: template.sampleData
-        });
-        console.log(`✓ Created template for ${template.module}`);
+        await storage.createTemplate(template);
+        console.log(`Created template for ${template.module}`);
       } else {
-        console.log(`- Template for ${template.module} already exists`);
+        console.log(`Template for ${template.module} already exists`);
       }
     } catch (error) {
-      console.error(`✗ Error creating template for ${template.module}:`, error);
+      console.error(`Error creating template for ${template.module}:`, error);
     }
   }
 
-  console.log("Seeding complete!");
-  process.exit(0);
+  // Seed configuration
+  const configs = [
+    { key: 'app_version', value: '1.0.0', description: 'Application version' },
+    { key: 'max_file_size', value: '10485760', description: 'Maximum file size in bytes (10MB)' },
+    { key: 'supported_formats', value: 'xlsx,xls', description: 'Supported file formats' }
+  ];
+
+  for (const config of configs) {
+    try {
+      await storage.setConfiguration(config.key, config.value, config.description);
+      console.log(`Set configuration: ${config.key}`);
+    } catch (error) {
+      console.error(`Error setting configuration ${config.key}:`, error);
+    }
+  }
+
+  console.log('Database seeding completed!');
 }
 
-seed().catch((error) => {
-  console.error("Seed failed:", error);
-  process.exit(1);
-});
+seedDatabase().catch(console.error);
