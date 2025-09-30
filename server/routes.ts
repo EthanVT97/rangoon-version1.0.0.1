@@ -19,7 +19,6 @@ const sql = neon(connectionString);
 const db = drizzle(sql);
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Environment validation for production
   const requiredEnvVars = ['DATABASE_URL'];
   const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
@@ -27,10 +26,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
   }
 
-  // File upload configuration
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
       if (file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
           file.mimetype === "application/vnd.ms-excel") {
@@ -41,7 +39,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  // Upload and process Excel file
   app.post("/api/upload-excel", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
@@ -53,10 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Module is required" });
       }
 
-      // Parse Excel file
       const parsed = excelParser.parseFile(req.file.buffer);
-
-      // Validate data
       const validation = dataValidator.validate(module, parsed.data);
 
       if (!validation.isValid) {
@@ -66,7 +60,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Store in staging table
       const stagingImport = await storage.createStagingImport({
         filename: req.file.originalname,
         module,
@@ -75,7 +68,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
 
-      // Start processing in background (async)
       processImport(stagingImport.id, module, parsed.data).catch(console.error);
 
       res.json({
@@ -88,7 +80,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get staging import status
   app.get("/api/staging/:id", async (req, res) => {
     try {
       const stagingImport = await storage.getStagingImport(req.params.id);
@@ -101,7 +92,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get API logs
   app.get("/api/logs", async (req, res) => {
     try {
       const { status, limit } = req.query;
@@ -119,7 +109,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all API logs (alias for compatibility)
   app.get("/api/logs/all", async (req, res) => {
     try {
       const logs = await storage.getApiLogs(100);
@@ -129,7 +118,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download Excel template
   app.get("/api/template/:module", async (req, res) => {
     try {
       const { module } = req.params;
@@ -153,7 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get dashboard statistics
   app.get("/api/stats", async (req, res) => {
     try {
       const logs = await storage.getApiLogs(1000);
@@ -176,7 +163,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check ERPNext API health
   app.get("/api/health/erpnext", async (req, res) => {
     try {
       const client = getERPNextClient();
@@ -193,13 +179,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get ERPNext configuration
-  app.get("/api/config/erpnext", async (req, res) => {
-    try {
-      const baseUrl = await storage.getConfiguration("erpnext_base_url");
-
-
-  // Get auto-fix strategies and statistics
   app.get("/api/autofix/strategies", async (req, res) => {
     try {
       const strategies = autoFixMiddleware.getStrategies().map(s => ({
@@ -216,7 +195,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Manually trigger auto-fix for a specific record
   app.post("/api/autofix/retry", async (req, res) => {
     try {
       const { module, data, error } = req.body;
@@ -232,6 +210,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/config/erpnext", async (req, res) => {
+    try {
+      const baseUrl = await storage.getConfiguration("erpnext_base_url");
       const apiKey = await storage.getConfiguration("erpnext_api_key");
       const apiSecret = await storage.getConfiguration("erpnext_api_secret");
 
@@ -245,7 +226,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save ERPNext configuration
   app.post("/api/config/erpnext", async (req, res) => {
     try {
       const { baseUrl, apiKey, apiSecret } = req.body;
@@ -258,7 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.setConfiguration("erpnext_api_key", apiKey, "ERPNext API key");
       await storage.setConfiguration("erpnext_api_secret", apiSecret, "ERPNext API secret");
 
-      // Reset ERPNext client to pick up new configuration
       const client = getERPNextClient();
       client.forceReinit();
 
@@ -268,15 +247,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Health check endpoints
   app.get("/api/health/database", async (req, res) => {
     try {
       const start = Date.now();
 
-      // Test basic connection
       await db.select().from(configuration).limit(1);
 
-      // Test all table accessibility
       const tables = await Promise.all([
         db.select().from(stagingErpnextImports).limit(1),
         db.select().from(apiLogs).limit(1),
@@ -305,7 +281,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Background processing function
 async function processImport(stagingId: string, module: string, data: Record<string, any>[]) {
   try {
     await storage.updateStagingImportStatus(stagingId, "processing");
@@ -318,6 +293,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
     for (let i = 0; i < data.length; i++) {
       const record = data[i];
       let response;
+      let autoFixResult;
 
       try {
         switch (module) {
@@ -343,9 +319,8 @@ async function processImport(stagingId: string, module: string, data: Record<str
         if (response.success) {
           successCount++;
         } else {
-          // Attempt auto-fix if initial creation failed
           console.log(`Record failed, attempting auto-fix. Error: ${response.error}`);
-          const autoFixResult = await autoFixMiddleware.processRecord(module, record, response.error || "Unknown error");
+          autoFixResult = await autoFixMiddleware.processRecord(module, record, response.error || "Unknown error");
           
           if (autoFixResult.success) {
             successCount++;
@@ -362,7 +337,6 @@ async function processImport(stagingId: string, module: string, data: Record<str
           }
         }
 
-        // Log individual record processing (moved to after auto-fix attempt)
         const logSuccess = response.success || (autoFixResult?.success || false);
         await storage.createApiLog({
           stagingId,
@@ -409,7 +383,6 @@ async function processImport(stagingId: string, module: string, data: Record<str
     const finalStatus = failureCount === 0 ? "completed" : "failed";
     await storage.updateStagingImportStatus(stagingId, finalStatus, new Date());
 
-    // Create summary log
     await storage.createApiLog({
       stagingId,
       filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
@@ -422,15 +395,14 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: finalStatus,
       erpnextResponse: { summary: `Processed ${data.length} records` },
       errors: errors.length > 0 ? errors : null,
-      responseTime: 0, // This might need to be calculated if relevant for summary
+      responseTime: 0,
     });
   } catch (error: any) {
     await storage.updateStagingImportStatus(stagingId, "failed", new Date());
     console.error("Error processing import:", error);
-    // Ensure a log entry for the overall failure if not already created
     await storage.createApiLog({
       stagingId,
-      filename: "unknown", // Filename might not be available in this catch block
+      filename: "unknown",
       module,
       endpoint: `/api/resource/${module}`,
       method: "POST",
@@ -443,4 +415,4 @@ async function processImport(stagingId: string, module: string, data: Record<str
       responseTime: 0,
     });
   }
-}
+        }
