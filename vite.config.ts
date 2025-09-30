@@ -7,6 +7,9 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// client folder ကို base အဖြစ် သတ်မှတ်
+const clientRoot = path.resolve(__dirname, "client");
+
 export default defineConfig({
   plugins: [
     react(),
@@ -25,15 +28,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-  
-      "@": path.resolve(__dirname, "./client/src"),
-      "@shared": path.resolve(__dirname, "./shared"),
-      "@assets": path.resolve(__dirname, "./attached_assets"),
+      // client root ကနေ src ကို point လုပ်
+      "@": path.resolve(clientRoot, "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(__dirname, "./client"),
+  root: clientRoot,
   build: {
-    outDir: path.resolve(__dirname, "./dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
