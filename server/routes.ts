@@ -224,7 +224,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Reset ERPNext client to pick up new configuration
       const client = getERPNextClient();
-      client['initialized'] = false; // Force re-initialization
+      if (client && typeof client === 'object' && 'initialized' in client) {
+        (client as any).initialized = false; // Force re-initialization
+      }
 
       res.json({ message: "Configuration saved successfully" });
     } catch (error: any) {
