@@ -72,7 +72,7 @@ export default function Dashboard() {
           <APIMonitoring />
         </div>
 
-        <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-auto">
+        <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-auto relative z-10">
           <div className="max-w-[1600px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">

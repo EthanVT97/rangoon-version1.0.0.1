@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", async (req, res) => {
     try {
       const logs = await storage.getApiLogs(1000);
-      
+
       const totalImports = logs.length;
       const successfulImports = logs.filter(log => log.status === "success").length;
       const failedImports = logs.filter(log => log.status === "failed").length;
@@ -162,7 +162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const health = await client.checkHealth();
       res.json(health);
     } catch (error: any) {
-      res.status(500).json({ 
+      console.error('ERPNext health check failed:', error);
+      res.status(500).json({
         success: false,
         error: error.message,
         statusCode: 500,
@@ -217,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = Date.now();
       await storage.getApiLogs(1);
       const responseTime = Date.now() - startTime;
-      
+
       res.json({
         success: true,
         message: "Database connection healthy",

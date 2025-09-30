@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export default function LiveChatWidget() {
     setIsTyping(true);
 
     // Simulate bot response delay
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: "Thank you for your message! 🚀\n\nOur live chat support is currently under development. We're working hard to bring you real-time assistance soon.\n\nIn the meantime:\n• Check the Settings page for ERPNext configuration\n• Use the Dashboard to monitor your imports\n• Review Import Logs for detailed information\n\nComing soon: Real-time expert support! 💬",
@@ -59,6 +59,9 @@ export default function LiveChatWidget() {
       setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
     }, 1500);
+
+    // Cleanup function would be needed for component unmount
+    return () => clearTimeout(timeoutId);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
