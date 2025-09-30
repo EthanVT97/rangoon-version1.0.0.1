@@ -5,8 +5,17 @@ import { storage } from "./storage";
 import { excelParser } from "./services/excelParser";
 import { dataValidator } from "./services/validator";
 import { getERPNextClient } from "./services/erpnextClient";
-import { db } from "./database"; // Assuming db is imported from a database configuration file
-import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./schema"; // Assuming schema holds table definitions
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema";
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+const sql = neon(connectionString);
+const db = drizzle(sql);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Environment validation for production
