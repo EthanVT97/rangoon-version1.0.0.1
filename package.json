@@ -114,4 +114,12 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   }
+  {
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "start": "node server/index.js",
+    "preview": "vite preview"
+  }
+}
 }
