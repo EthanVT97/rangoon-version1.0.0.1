@@ -3,11 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Download, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import LogDetailDialog from "./log-detail-dialog";
 import type { ApiLog } from "@shared/schema";
 
 export default function ImportLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedLog, setSelectedLog] = useState<ApiLog | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const { data: logs } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs", statusFilter],
@@ -17,6 +22,61 @@ export default function ImportLogs() {
   const filteredLogs = logs?.filter((log) =>
     log.filename.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const handleViewLog = (log: ApiLog) => {
+    setSelectedLog(log);
+    setDialogOpen(true);
+  };
+
+  const handleExport = () => {
+    try {
+      const dataToExport = filteredLogs.map((log) => ({
+        timestamp: new Date(log.timestamp).toISOString(),
+        filename: log.filename,
+        module: log.module,
+        records: log.recordCount,
+        successful: log.successCount,
+        failed: log.failureCount,
+        status: log.status,
+        responseTime: log.responseTime,
+      }));
+
+      const csv = [
+        ["Timestamp", "Filename", "Module", "Records", "Successful", "Failed", "Status", "Response Time (ms)"].join(","),
+        ...dataToExport.map((row) =>
+          [
+            row.timestamp,
+            `"${row.filename}"`,
+            row.module,
+            row.records,
+            row.successful,
+            row.failed,
+            row.status,
+            row.responseTime,
+          ].join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `import-logs-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "Logs exported to CSV file",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export logs",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -47,8 +107,8 @@ export default function ImportLogs() {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg shadow-sm">
-      <div className="p-6 border-b border-border">
+    <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+      <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h3 className="text-lg font-semibold text-foreground font-myanmar">Import History & Logs</h3>
@@ -82,7 +142,7 @@ export default function ImportLogs() {
               <option value="processing">Processing</option>
             </select>
 
-            <Button variant="ghost" size="sm" data-testid="button-export-logs">
+            <Button variant="ghost" size="sm" onClick={handleExport} data-testid="button-export-logs">
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -136,7 +196,7 @@ export default function ImportLogs() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(log.status)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  <Button variant="link" size="sm" data-testid="button-view-log">
+                  <Button variant="link" size="sm" onClick={() => handleViewLog(log)} data-testid="button-view-log">
                     View
                   </Button>
                 </td>
@@ -152,6 +212,8 @@ export default function ImportLogs() {
           <p className="text-sm text-muted-foreground font-myanmar">No logs found</p>
         </div>
       )}
+
+      <LogDetailDialog open={dialogOpen} onOpenChange={setDialogOpen} log={selectedLog} />
     </div>
   );
 }

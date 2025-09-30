@@ -25,8 +25,8 @@ export default function APIMonitoring() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-card border border-border rounded-lg shadow-sm">
-        <div className="p-6 border-b border-border">
+      <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
           <h3 className="text-lg font-semibold text-foreground font-myanmar">ERPNext API Status</h3>
           <p className="text-sm text-muted-foreground mt-1">Real-time API health monitoring</p>
         </div>
@@ -62,8 +62,8 @@ export default function APIMonitoring() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg shadow-sm">
-        <div className="p-6 border-b border-border">
+      <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
           <h3 className="text-lg font-semibold text-foreground font-myanmar">Endpoint Health</h3>
           <p className="text-sm text-muted-foreground mt-1">Individual endpoint monitoring</p>
         </div>

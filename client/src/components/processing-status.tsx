@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, AlertCircle, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LogDetailDialog from "./log-detail-dialog";
 import type { ApiLog } from "@shared/schema";
 
 export default function ProcessingStatus() {
+  const [selectedLog, setSelectedLog] = useState<ApiLog | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const { data: logs, refetch } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs"],
     refetchInterval: 3000,
@@ -12,9 +17,14 @@ export default function ProcessingStatus() {
   const processingLogs = logs?.filter((log) => log.status === "processing") || [];
   const recentLogs = logs?.slice(0, 3) || [];
 
+  const handleViewDetails = (log: ApiLog) => {
+    setSelectedLog(log);
+    setDialogOpen(true);
+  };
+
   return (
-    <div className="bg-card border border-border rounded-lg shadow-sm">
-      <div className="p-6 border-b border-border">
+    <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+      <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-foreground font-myanmar">Processing Status</h3>
@@ -78,7 +88,13 @@ export default function ProcessingStatus() {
                     </p>
                   </div>
                 </div>
-                <Button variant="link" size="sm" className="font-myanmar" data-testid="button-view-details">
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="font-myanmar" 
+                  onClick={() => handleViewDetails(log)}
+                  data-testid="button-view-details"
+                >
                   အသေးစိတ်ကြည့်ရန်
                 </Button>
               </div>
@@ -93,6 +109,8 @@ export default function ProcessingStatus() {
           )}
         </div>
       </div>
+
+      <LogDetailDialog open={dialogOpen} onOpenChange={setDialogOpen} log={selectedLog} />
     </div>
   );
 }

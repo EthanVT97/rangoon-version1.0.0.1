@@ -59,20 +59,21 @@ export default function StatsCards() {
         return (
           <div
             key={index}
-            className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-gradient-to-br from-card to-card/50 border border-border/50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group relative overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground font-myanmar">{stat.title}</p>
-                <p className="text-3xl font-bold text-foreground mt-2">{stat.value}</p>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground font-myanmar mb-1">{stat.title}</p>
+                <p className="text-3xl font-bold text-foreground mt-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text">{stat.value}</p>
                 {stat.subtitle && (
-                  <p className={`text-xs mt-2 font-myanmar ${stat.subtitleColor || "text-success"}`}>
+                  <p className={`text-xs mt-2.5 font-myanmar font-medium ${stat.subtitleColor || "text-success"}`}>
                     {stat.change || stat.subtitle}
                   </p>
                 )}
               </div>
-              <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-                <Icon className={`w-6 h-6 ${stat.iconColor} ${stat.spin ? "animate-spin" : ""}`} />
+              <div className={`w-14 h-14 ${stat.bgColor} rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                <Icon className={`w-7 h-7 ${stat.iconColor} ${stat.spin ? "animate-spin" : ""}`} />
               </div>
             </div>
           </div>

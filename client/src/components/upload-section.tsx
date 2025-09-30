@@ -93,21 +93,25 @@ export default function UploadSection() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
-        <div className="bg-card border border-border rounded-lg shadow-sm">
-          <div className="p-6 border-b border-border">
-            <h3 className="text-lg font-semibold text-foreground font-myanmar">Excel File Upload</h3>
-            <p className="text-sm text-muted-foreground mt-1 font-myanmar">
+        <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+            <h3 className="text-lg font-semibold text-foreground font-myanmar flex items-center gap-2">
+              <Upload className="w-5 h-5 text-primary" />
+              Excel File Upload
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1.5 font-myanmar">
               Excel file များကို ဤနေရာတွင် drag & drop လုပ်ပါ သို့မဟုတ် နှိပ်၍ ရွေးချယ်ပါ
             </p>
           </div>
 
           <div className="p-6">
             <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground mb-2">Module</label>
+              <label className="block text-sm font-medium text-foreground mb-2 font-myanmar">Module</label>
               <select
                 value={module}
                 onChange={(e) => setModule(e.target.value)}
-                className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full px-4 py-2.5 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                data-testid="select-module"
               >
                 <option value="Item">Item</option>
                 <option value="Customer">Customer</option>
@@ -191,9 +195,12 @@ export default function UploadSection() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg shadow-sm">
-        <div className="p-6 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground font-myanmar">အသုံးပြုပုံ လမ်းညွှန်</h3>
+      <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+          <h3 className="text-lg font-semibold text-foreground font-myanmar flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            အသုံးပြုပုံ လမ်းညွှန်
+          </h3>
         </div>
 
         <div className="p-6 space-y-4">
