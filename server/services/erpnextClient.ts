@@ -25,39 +25,47 @@ class ERPNextClient {
   private baseURL: string = '';
   private apiKey: string = '';
   private apiSecret: string = '';
-  private initialized: boolean = false;
+  public initialized: boolean = false;
 
   async initialize() {
     if (this.initialized) return;
 
-    // Try environment variables first (for backward compatibility)
-    this.baseURL = process.env.ERPNEXT_BASE_URL || '';
-    this.apiKey = process.env.ERPNEXT_API_KEY || '';
-    this.apiSecret = process.env.ERPNEXT_API_SECRET || '';
+    try {
+      // Try environment variables first (for backward compatibility)
+      this.baseURL = process.env.ERPNEXT_BASE_URL || '';
+      this.apiKey = process.env.ERPNEXT_API_KEY || '';
+      this.apiSecret = process.env.ERPNEXT_API_SECRET || '';
 
-    // If not in env, try database
-    if (!this.baseURL || !this.apiKey || !this.apiSecret) {
-      const baseUrl = await storage.getConfiguration("erpnext_base_url");
-      const apiKey = await storage.getConfiguration("erpnext_api_key");
-      const apiSecret = await storage.getConfiguration("erpnext_api_secret");
+      // If not in env, try database
+      if (!this.baseURL || !this.apiKey || !this.apiSecret) {
+        const baseUrl = await storage.getConfiguration("erpnext_base_url");
+        const apiKey = await storage.getConfiguration("erpnext_api_key");
+        const apiSecret = await storage.getConfiguration("erpnext_api_secret");
 
-      this.baseURL = baseUrl || this.baseURL;
-      this.apiKey = apiKey || this.apiKey;
-      this.apiSecret = apiSecret || this.apiSecret;
+        this.baseURL = baseUrl || this.baseURL;
+        this.apiKey = apiKey || this.apiKey;
+        this.apiSecret = apiSecret || this.apiSecret;
+      }
+
+      if (this.baseURL && this.apiKey && this.apiSecret) {
+        // Ensure baseURL doesn't end with slash
+        this.baseURL = this.baseURL.replace(/\/$/, '');
+        
+        this.client = axios.create({
+          baseURL: this.baseURL,
+          timeout: 30000,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token ${this.apiKey}:${this.apiSecret}`
+          }
+        });
+      }
+
+      this.initialized = true;
+    } catch (error) {
+      console.error('Failed to initialize ERPNext client:', error);
+      this.initialized = true; // Still mark as initialized to avoid infinite loops
     }
-
-    if (this.baseURL && this.apiKey && this.apiSecret) {
-      this.client = axios.create({
-        baseURL: this.baseURL,
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${this.apiKey}:${this.apiSecret}`
-        }
-      });
-    }
-
-    this.initialized = true;
   }
 
   async checkHealth(): Promise<ERPNextHealthStatus> {

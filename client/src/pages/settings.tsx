@@ -21,6 +21,13 @@ interface HealthStatus {
   responseTime?: number;
 }
 
+interface DatabaseHealth {
+  success: boolean;
+  message?: string;
+  error?: string;
+  responseTime?: number;
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const [baseUrl, setBaseUrl] = useState("");
@@ -44,6 +51,11 @@ export default function Settings() {
     enabled: false,
   });
 
+  const { data: dbHealth } = useQuery<DatabaseHealth>({
+    queryKey: ["/api/health/database"],
+    refetchInterval: 30000,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (data: ERPNextConfig) => {
       const res = await apiRequest("POST", "/api/config/erpnext", data);
@@ -51,6 +63,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/config/erpnext"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/health/erpnext"] });
       toast({
         title: "Settings saved",
         description: "ERPNext API configuration has been updated successfully.",
@@ -218,12 +231,25 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2 p-4 bg-success/10 text-success rounded-lg border border-success/20">
-                  <CheckCircle2 className="w-5 h-5" />
+                <div className={`flex items-center gap-2 p-4 rounded-lg border ${
+                  dbHealth?.success 
+                    ? "bg-success/10 text-success border-success/20" 
+                    : "bg-destructive/10 text-destructive border-destructive/20"
+                }`}>
+                  {dbHealth?.success ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : (
+                    <XCircle className="w-5 h-5" />
+                  )}
                   <div>
-                    <p className="font-medium">Database Connected</p>
+                    <p className="font-medium">
+                      {dbHealth?.success ? "Database Connected" : "Database Error"}
+                    </p>
                     <p className="text-sm opacity-80">
-                      Using Supabase PostgreSQL (via DATABASE_URL)
+                      {dbHealth?.success 
+                        ? `PostgreSQL (${dbHealth.responseTime}ms response time)`
+                        : dbHealth?.error || "Connection failed"
+                      }
                     </p>
                   </div>
                 </div>

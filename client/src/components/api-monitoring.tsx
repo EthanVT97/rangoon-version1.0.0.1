@@ -1,19 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Activity, Database, Wifi } from "lucide-react";
 import type { ApiLog } from "@shared/schema";
+import { useState, useEffect } from "react";
+
+interface HealthStatus {
+  success: boolean;
+  error?: string;
+  responseTime?: number;
+  statusCode?: number;
+}
 
 export default function APIMonitoring() {
-  const { data: health } = useQuery({
+  const { data: healthStatus, refetch } = useQuery<HealthStatus>({
     queryKey: ["/api/health/erpnext"],
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Check every 30 seconds
   });
 
   const { data: logs } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs"],
   });
 
+  const [lastCheck, setLastCheck] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastCheck(new Date());
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   const avgResponseTime = (logs?.reduce((acc, log) => acc + (log.responseTime || 0), 0) || 0) / (logs?.length || 1);
   const successRate = ((logs?.filter((log) => log.status === "success").length || 0) / (logs?.length || 1)) * 100;
+
+  const isConnected = healthStatus?.success || false;
+  const responseTime = healthStatus?.responseTime || 0;
 
   const endpoints = [
     { name: "/api/resource/Item", avgTime: "235ms", status: "healthy" },
@@ -32,22 +54,57 @@ export default function APIMonitoring() {
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between p-4 bg-success/5 border border-success/20 rounded-lg">
+          <div className={`flex items-center justify-between p-4 rounded-lg ${
+            isConnected 
+              ? "bg-success/5 border border-success/20" 
+              : "bg-destructive/5 border border-destructive/20"
+          }`}>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-success/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-success" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isConnected ? "bg-success/10" : "bg-destructive/10"
+              }`}>
+                {isConnected ? (
+                  <CheckCircle className="w-5 h-5 text-success" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-destructive" />
+                )}
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground font-myanmar">API Connected</p>
-                <p className="text-xs text-muted-foreground">sandbox.erpnext.com</p>
+                <p className="text-sm font-medium text-foreground font-myanmar">
+                  {isConnected ? "API Connected" : "API Disconnected"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {healthStatus?.error || "ERPNext API Ready"}
+                </p>
               </div>
             </div>
-            <span className="w-2 h-2 bg-success rounded-full" />
+            <span className={`w-2 h-2 rounded-full ${
+              isConnected ? "bg-success" : "bg-destructive"
+            }`} />
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <span className="text-sm font-medium text-foreground font-myanmar">Average Response Time</span>
-            <span className="text-sm font-semibold text-primary">{Math.round(avgResponseTime)}ms</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <Activity className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Response Time</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{responseTime}ms</p>
+              <p className="text-xs text-muted-foreground">
+                {isConnected ? "Last check successful" : "Connection failed"}
+              </p>
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <Wifi className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Last Check</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">
+                {lastCheck.toLocaleTimeString()}
+              </p>
+              <p className="text-xs text-muted-foreground">Auto-refresh: 30s</p>
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">

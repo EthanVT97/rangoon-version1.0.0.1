@@ -98,6 +98,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all API logs (alias for compatibility)
+  app.get("/api/logs/all", async (req, res) => {
+    try {
+      const logs = await storage.getApiLogs(100);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Download Excel template
   app.get("/api/template/:module", async (req, res) => {
     try {
@@ -191,9 +201,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.setConfiguration("erpnext_api_key", apiKey, "ERPNext API key");
       await storage.setConfiguration("erpnext_api_secret", apiSecret, "ERPNext API secret");
 
+      // Reset ERPNext client to pick up new configuration
+      const client = getERPNextClient();
+      client['initialized'] = false; // Force re-initialization
+
       res.json({ message: "Configuration saved successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Check database health
+  app.get("/api/health/database", async (req, res) => {
+    try {
+      const startTime = Date.now();
+      await storage.getApiLogs(1);
+      const responseTime = Date.now() - startTime;
+      
+      res.json({
+        success: true,
+        message: "Database connection healthy",
+        responseTime
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        responseTime: Date.now() - Date.now()
+      });
     }
   });
 
