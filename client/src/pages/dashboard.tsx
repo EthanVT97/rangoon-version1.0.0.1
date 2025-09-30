@@ -73,10 +73,24 @@ export default function Dashboard() {
 
         <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-auto">
           <div className="max-w-[1600px] mx-auto px-6 py-4">
-            <div className="flex items-center justify-center text-sm text-muted-foreground">
-              <span className="font-myanmar">
-                All rights reserved © Rangoon, Under Development
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-muted-foreground font-myanmar">
+                  All rights reserved © Rangoon, Under Development
+                </span>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="text-xs font-medium font-myanmar">
+                    Live Chat Widget - Coming Soon
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground font-myanmar">
+                  Real-Time ChatBot Support
+                </div>
+              </div>
             </div>
           </div>
         </footer>
