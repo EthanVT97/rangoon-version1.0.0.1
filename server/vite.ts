@@ -77,8 +77,8 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // ✅ Fixed: Use process.cwd() to get project root, then go to dist/public
-  const distPath = path.resolve(process.cwd(), "dist", "public");
+  // Fixed: Use process.cwd() to get project root, then explicitly go to client/dist/public
+  const distPath = path.resolve(process.cwd(), "client", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     console.error(`Build directory not found: ${distPath}`);
