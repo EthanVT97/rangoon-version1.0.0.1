@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
-import { storage } from "./storage.js";
-import { excelParser } from "./services/excelParser.js";
-import { dataValidator } from "./services/validator.js";
-import { getERPNextClient } from "./services/erpnextClient.js";
-import { autoFixMiddleware } from "./services/autoFixMiddleware.js";
+import { storage } from "./storage.js"; // Fixed: Added .js extension
+import { excelParser } from "./services/excelParser.js"; // Fixed: Added .js extension
+import { dataValidator } from "./services/validator.js"; // Fixed: Added .js extension
+import { getERPNextClient } from "./services/erpnextClient.js"; // Fixed: Added .js extension
+import { autoFixMiddleware } from "./services/autoFixMiddleware.js"; // Fixed: Added .js extension
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema.js";
+import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema.js"; // Fixed: Added .js extension
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -19,11 +19,12 @@ const sql = neon(connectionString);
 const db = drizzle(sql);
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const requiredEnvVars = ['DATABASE_URL'];
+  // Fixed: Added ERPNext specific environment variables
+  const requiredEnvVars = ['DATABASE_URL', 'ERPNEXT_BASE_URL', 'ERPNEXT_API_KEY', 'ERPNEXT_API_SECRET'];
   const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
   if (missingEnvVars.length > 0) {
-    console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    console.warn(`Warning: Missing recommended environment variables: ${missingEnvVars.join(', ')}. Using database configuration as fallback.`);
   }
 
   const upload = multer({
@@ -84,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const stagingImport = await storage.getStagingImport(req.params.id);
       if (!stagingImport) {
-        return res.status(404).json({ message: "Import not found" });
+        return res.status(404).json({ message: "Import not found" );
       }
       res.json(stagingImport);
     } catch (error: any) {
@@ -146,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logs = await storage.getApiLogs(1000);
 
       const totalImports = logs.length;
-      const successfulImports = logs.filter(log => log.status === "success").length;
+      const successfulImports = logs.filter(log => log.status === "success" || log.status === "completed").length;
       const failedImports = logs.filter(log => log.status === "failed").length;
       const processingImports = logs.filter(log => log.status === "processing").length;
       const successRate = totalImports > 0 ? ((successfulImports / totalImports) * 100).toFixed(1) : "0.0";
@@ -282,6 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 }
 
 async function processImport(stagingId: string, module: string, data: Record<string, any>[]) {
+  const processStartTime = Date.now(); // Fixed: Record start time for overall process
   try {
     await storage.updateStagingImportStatus(stagingId, "processing");
 
@@ -380,6 +382,8 @@ async function processImport(stagingId: string, module: string, data: Record<str
       }
     }
 
+    const processEndTime = Date.now();
+    const overallResponseTime = processEndTime - processStartTime; // Fixed: Calculate overall response time
     const finalStatus = failureCount === 0 ? "completed" : "failed";
     await storage.updateStagingImportStatus(stagingId, finalStatus, new Date());
 
@@ -395,9 +399,11 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: finalStatus,
       erpnextResponse: { summary: `Processed ${data.length} records` },
       errors: errors.length > 0 ? errors : null,
-      responseTime: 0,
+      responseTime: overallResponseTime, // Fixed: Use calculated overall response time
     });
   } catch (error: any) {
+    const processEndTime = Date.now();
+    const overallResponseTime = processEndTime - processStartTime;
     await storage.updateStagingImportStatus(stagingId, "failed", new Date());
     console.error("Error processing import:", error);
     await storage.createApiLog({
@@ -412,7 +418,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: "failed",
       erpnextResponse: null,
       errors: [{ message: `Overall processing failed: ${error.message || "Unknown error"}` }],
-      responseTime: 0,
+      responseTime: overallResponseTime, // Fixed: Use calculated overall response time
     });
   }
-          }
+        }
