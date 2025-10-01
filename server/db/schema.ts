@@ -1,4 +1,3 @@
-
 import { pgTable, text, timestamp, integer, jsonb, uuid } from "drizzle-orm/pg-core";
 
 export const stagingErpnextImports = pgTable("staging_erpnext_imports", {
@@ -26,7 +25,7 @@ export const apiLogs = pgTable("api_logs", {
   erpnextResponse: jsonb("erpnext_response"),
   errors: jsonb("errors"),
   responseTime: integer("response_time").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(), // Consistent with shared/schema.ts (fixed)
 });
 
 export const configuration = pgTable("configuration", {
@@ -34,7 +33,7 @@ export const configuration = pgTable("configuration", {
   key: text("key").notNull().unique(),
   value: text("value").notNull(),
   description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(), // Added createdAt (consistent with shared/schema.ts fix)
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -45,5 +44,5 @@ export const excelTemplates = pgTable("excel_templates", {
   columns: jsonb("columns").notNull(),
   sampleData: jsonb("sample_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(), // Added updatedAt (consistent with shared/schema.ts fix)
 });
