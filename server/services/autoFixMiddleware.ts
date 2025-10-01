@@ -1,6 +1,5 @@
-
-import { getERPNextClient } from './erpnextClient';
-import { storage } from '../storage';
+import { getERPNextClient } from './erpnextClient.js';
+import { storage } from '../storage.js';
 
 interface AutoFixStrategy {
   errorPattern: RegExp;
