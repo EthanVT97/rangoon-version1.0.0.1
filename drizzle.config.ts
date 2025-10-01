@@ -1,4 +1,4 @@
-
+// drizzle.config.ts
 import type { Config } from "drizzle-kit";
 
 export default {
@@ -8,4 +8,6 @@ export default {
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
+  // Fixed: Add 'dialect' property for clearer configuration (essential for some drivers)
+  dialect: 'postgresql', 
 } satisfies Config;
