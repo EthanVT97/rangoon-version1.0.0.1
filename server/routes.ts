@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage.js";
 import { excelParser } from "./services/excelParser.js";
 import { dataValidator } from "./services/validator.js";
-import { fieldMapper } from "./services/fieldMapper.js"; // Add this import
+import { fieldMapper } from "./services/fieldMapper.js";
 import { getERPNextClient } from "./services/erpnextClient.js";
 import { autoFixMiddleware } from "./services/autoFixMiddleware.js";
 import { drizzle } from "drizzle-orm/neon-http";
@@ -40,7 +40,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  // UPDATED: Enhanced upload endpoint with field mapping
   app.post("/api/upload-excel", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
@@ -54,15 +53,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`\n📁 Processing upload: ${req.file.originalname} for module: ${module}`);
 
-      // Parse Excel file
       const parsed = excelParser.parseFile(req.file.buffer);
       console.log(`📊 Parsed ${parsed.rowCount} rows with columns:`, parsed.columns);
 
-      // Map fields from ERPNext names to simple names
       const mappedData = fieldMapper.mapData(module, parsed.data);
       console.log(`🔄 Mapped data. First row:`, JSON.stringify(mappedData[0], null, 2));
 
-      // Validate mapped data
       const validation = dataValidator.validate(module, mappedData);
 
       if (!validation.isValid) {
@@ -78,18 +74,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`⚠️  Warnings:`, validation.warnings);
       }
 
-      // Create staging import with MAPPED data
       const stagingImport = await storage.createStagingImport({
         filename: req.file.originalname,
         module,
         recordCount: parsed.rowCount,
-        parsedData: mappedData, // Use mapped data instead of raw data
+        parsedData: mappedData,
         status: "pending",
       });
 
       console.log(`✅ Created staging import: ${stagingImport.id}`);
 
-      // Process import in background
       processImport(stagingImport.id, module, mappedData).catch(console.error);
 
       res.json({
@@ -104,7 +98,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add endpoint to show field mappings (for debugging)
   app.get("/api/field-mappings/:module", async (req, res) => {
     try {
       const { module } = req.params;
@@ -477,4 +470,4 @@ async function processImport(stagingId: string, module: string, data: Record<str
       responseTime: overallResponseTime,
     });
   }
-        }
+  }
