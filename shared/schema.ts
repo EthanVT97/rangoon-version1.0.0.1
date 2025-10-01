@@ -23,13 +23,13 @@ export const apiLogs = pgTable("api_logs", {
   module: text("module").notNull(),
   endpoint: text("endpoint").notNull(), // ERPNext API endpoint
   method: text("method").notNull(), // GET, POST, PUT, etc.
-  recordCount: integer("record_count").notNull(),
-  successCount: integer("success_count").notNull().default(0),
-  failureCount: integer("failure_count").notNull().default(0),
+  recordCount: integer("record_count").notNull(), // Consistent with server/db/schema.ts
+  successCount: integer("success_count").notNull().default(0), // Consistent with server/db/schema.ts
+  failureCount: integer("failure_count").notNull().default(0), // Consistent with server/db/schema.ts
   status: text("status").notNull(), // 'success', 'failed', 'processing'
   erpnextResponse: jsonb("erpnext_response"), // API response from ERPNext
   errors: jsonb("errors"), // Array of error objects with row/column details
-  responseTime: integer("response_time").notNull(), // Response time in ms
+  responseTime: integer("response_time").notNull(), // Consistent with server/db/schema.ts
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
