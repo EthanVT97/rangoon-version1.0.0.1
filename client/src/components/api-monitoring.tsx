@@ -46,7 +46,7 @@ export default function APIMonitoring() {
 
     logs.forEach(log => {
       // Filter out overall import logs, focus on individual endpoint calls
-      if (!log.endpoint || log.recordCount > 1) return; 
+      if (!log.endpoint || (log.recordCount && log.recordCount > 1)) return; 
 
       if (!endpointMap[log.endpoint]) {
         endpointMap[log.endpoint] = { totalTime: 0, count: 0, failedCount: 0 };
@@ -200,4 +200,4 @@ export default function APIMonitoring() {
       </div>
     </div>
   );
-        }
+}
