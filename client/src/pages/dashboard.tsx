@@ -61,8 +61,8 @@ export default function Dashboard() {
 
                 {/* Notifications Button with Dropdown logic */}
                 <div className="relative">
-                  <button 
-                    className="p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm relative group" 
+                  <button
+                    className="p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm relative group"
                     data-testid="button-notifications"
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                   >
@@ -73,7 +73,7 @@ export default function Dashboard() {
                     <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-20">
                       <div className="p-4 border-b border-border flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-foreground font-myanmar">အသိပေးချက်များ</h3>
-                        <button 
+                        <button
                           className="text-muted-foreground hover:text-foreground"
                           onClick={() => setIsNotificationsOpen(false)}
                         >
@@ -99,8 +99,8 @@ export default function Dashboard() {
 
 
                 {/* Mobile Menu Button */}
-                <button 
-                  className="lg:hidden p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm" 
+                <button
+                  className="lg:hidden p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm"
                   data-testid="button-menu"
                   onClick={() => setIsMobileSidebarOpen(true)} // Open sidebar on click
                 >
