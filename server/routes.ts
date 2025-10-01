@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
-import { storage } from "./storage.js"; // Fixed: Added .js extension
-import { excelParser } from "./services/excelParser.js"; // Fixed: Added .js extension
-import { dataValidator } from "./services/validator.js"; // Fixed: Added .js extension
-import { getERPNextClient } from "./services/erpnextClient.js"; // Fixed: Added .js extension
-import { autoFixMiddleware } from "./services/autoFixMiddleware.js"; // Fixed: Added .js extension
+import { storage } from "./storage.js";
+import { excelParser } from "./services/excelParser.js";
+import { dataValidator } from "./services/validator.js";
+import { getERPNextClient } from "./services/erpnextClient.js";
+import { autoFixMiddleware } from "./services/autoFixMiddleware.js";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema.js"; // Fixed: Added .js extension
+import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema.js";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const stagingImport = await storage.getStagingImport(req.params.id);
       if (!stagingImport) {
-        return res.status(404).json({ message: "Import not found" );
+        return res.status(404).json({ message: "Import not found" }); // Fixed: Corrected closing parenthesis and bracket
       }
       res.json(stagingImport);
     } catch (error: any) {
