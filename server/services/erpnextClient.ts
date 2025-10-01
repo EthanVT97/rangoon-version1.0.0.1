@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { storage } from '../storage.js'; // Fixed: Added .js extension
+import { storage } from '../storage.js';
 
 export interface ERPNextResponse {
   success: boolean;
@@ -27,12 +27,14 @@ class ERPNextClient {
   public initialized: boolean = false;
 
   async initialize() {
-    if (this.initialized) return;
+    // Fixed: Reset initialization state and client before attempting to re-initialize
+    this.initialized = false;
+    this.client = null;
+    this.baseURL = '';
+    this.apiKey = '';
+    this.apiSecret = '';
 
     try {
-      // Reset client first
-      this.client = null;
-      
       // Try environment variables first (for backward compatibility)
       this.baseURL = process.env.ERPNEXT_BASE_URL || '';
       this.apiKey = process.env.ERPNEXT_API_KEY || '';
@@ -50,16 +52,16 @@ class ERPNextClient {
       }
 
       if (this.baseURL && this.apiKey && this.apiSecret) {
-        // Ensure baseURL doesn't end with slash and is valid
+        // Ensure baseURL doesn't end with slash
         this.baseURL = this.baseURL.replace(/\/$/, '');
         
-        // Validate URL format
+        // Fixed: Validate URL format
         try {
           new URL(this.baseURL);
-        } catch {
-          console.error('Invalid ERPNext base URL format:', this.baseURL);
-          this.initialized = true;
-          return;
+        } catch (urlError) {
+          console.error('Invalid ERPNext base URL format provided:', this.baseURL, urlError);
+          // Keep initialized as false if URL is invalid
+          return; 
         }
         
         this.client = axios.create({
@@ -72,29 +74,31 @@ class ERPNextClient {
         });
         
         console.log('ERPNext client initialized successfully');
+        this.initialized = true; // Fixed: Only set to true if client setup is successful
       } else {
-        console.log('ERPNext credentials not configured');
+        console.log('ERPNext credentials not fully configured. Client remains uninitialized.');
+        // this.initialized remains false
       }
-
-      this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize ERPNext client:', error);
-      this.initialized = true; // Still mark as initialized to avoid infinite loops
+      console.error('Failed to initialize ERPNext client due to an unexpected error:', error);
+      // this.initialized remains false
     }
   }
 
   async checkHealth(): Promise<ERPNextHealthStatus> {
     const startTime = Date.now();
     try {
-      await this.initialize();
-      
-      if (!this.client) {
-        return {
-          success: false,
-          error: 'ERPNext client not configured. Please add your API credentials in Settings.',
-          statusCode: 500,
-          responseTime: Date.now() - startTime
-        };
+      // Ensure client is initialized before making a request
+      if (!this.initialized || !this.client) {
+        await this.initialize();
+        if (!this.initialized || !this.client) { // Re-check after attempt to initialize
+          return {
+            success: false,
+            error: 'ERPNext client not configured. Please add your API credentials in Settings.',
+            statusCode: 500,
+            responseTime: Date.now() - startTime
+          };
+        }
       }
 
       const response = await this.client.get('/api/method/ping');
@@ -143,14 +147,16 @@ class ERPNextClient {
   private async createRecord(doctype: string, data: Record<string, any>): Promise<ERPNextResponse> {
     const startTime = Date.now();
     try {
-      await this.initialize();
-      
-      if (!this.client) {
-        return {
-          success: false,
-          error: 'ERPNext client not configured. Please add your API credentials in Settings.',
-          responseTime: Date.now() - startTime
-        };
+      // Ensure client is initialized before making a request
+      if (!this.initialized || !this.client) {
+        await this.initialize();
+        if (!this.initialized || !this.client) { // Re-check after attempt to initialize
+          return {
+            success: false,
+            error: 'ERPNext client not configured. Please add your API credentials in Settings.',
+            responseTime: Date.now() - startTime
+          };
+        }
       }
 
       const response = await this.client.post(`/api/resource/${doctype}`, data);
@@ -178,6 +184,7 @@ class ERPNextClient {
     this.baseURL = '';
     this.apiKey = '';
     this.apiSecret = '';
+    console.log('ERPNext client forced to reinitialize on next request.');
   }
 }
 
@@ -188,4 +195,4 @@ export function getERPNextClient(): ERPNextClient {
     client = new ERPNextClient();
   }
   return client;
-}
+  }
