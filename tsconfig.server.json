@@ -5,7 +5,8 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "noEmit": false,
-    "rootDir": "."
+    "rootDir": ".",
+    "allowImportingTsExtensions": false
   },
   "include": ["server/**/*", "shared/**/*"],
   "exclude": ["node_modules", "client"]
