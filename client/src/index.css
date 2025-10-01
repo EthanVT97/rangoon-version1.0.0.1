@@ -6,7 +6,7 @@
 
 :root {
   /* Modern Color Palette - Light Mode */
-  /* Fixed: Reverted --background to the original light grey HSL value */
+  /* Fixed: --background ကို မူလ light grey HSL တန်ဖိုးသို့ ပြန်လည်သတ်မှတ်သည်။ */
   --background: 248 250 252; 
   --foreground: 15 23 42;
   --card: 255 255 255;
@@ -40,7 +40,6 @@
 
 .dark {
   /* Dark Mode Colors */
-  /* This was previously changed to a more distinct dark blue. Keeping it as is. */
   --background: 220 30% 15%; 
   --foreground: 248 250 252;
   --card: 30 41 59;
@@ -288,4 +287,4 @@
   h3 {
     @apply text-xl;
   }
-}
+      }
