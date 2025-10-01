@@ -7,7 +7,6 @@
   "workspaces": [
     "client"
   ],
-{
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
@@ -20,8 +19,6 @@
     "db:migrate": "tsx server/migrate.ts",
     "db:seed": "tsx server/seed.ts",
     "db:studio": "drizzle-kit studio"
-  }
-}
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
