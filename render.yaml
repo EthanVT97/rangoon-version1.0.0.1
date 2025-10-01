@@ -2,7 +2,9 @@ services:
   - type: web
     name: rangoon-veraion1.0.0.1
     env: node
-    buildCommand: yarn install && yarn run build
+    # The buildCommand has been updated to include 'npm run db:migrate'
+    # This ensures your database schema is up-to-date before the application starts.
+    buildCommand: yarn install && yarn run build && npm run db:migrate
     startCommand: yarn start
     envVars:
       - key: NODE_ENV
