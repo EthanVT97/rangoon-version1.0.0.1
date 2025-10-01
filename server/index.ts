@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";   // 👈 MUST use .js extension for ESM build
-import { setupVite, serveStatic, log } from "./vite.js"; // 👈 same here (.js required)
+import { registerRoutes } from "./routes.js";   // Fixed: Added .js extension
+import { setupVite, serveStatic, log } from "./vite.js"; // Fixed: Added .js extension
 
 const app = express();
 
