@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { stagingErpnextImports, apiLogs, configuration, excelTemplates } from "./db/schema.js";
+import { stagingErpnextImports, apiLogs, configuration, excelTemplates } from "./db/schema.js"; // Fixed: Added .js extension
 import { eq, desc, count } from "drizzle-orm";
 
 const connectionString = process.env.DATABASE_URL;
