@@ -1,10 +1,13 @@
+/* client/src/index.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   /* Modern Color Palette - Light Mode */
-  --background: 248 250 252;
+  /* Fixed: Reverted --background to the original light grey HSL value */
+  --background: 248 250 252; 
   --foreground: 15 23 42;
   --card: 255 255 255;
   --card-foreground: 15 23 42;
@@ -37,7 +40,8 @@
 
 .dark {
   /* Dark Mode Colors */
-  --background: 220 30% 15%; /* Fixed: Changed to a more distinct dark blue HSL value */
+  /* This was previously changed to a more distinct dark blue. Keeping it as is. */
+  --background: 220 30% 15%; 
   --foreground: 248 250 252;
   --card: 30 41 59;
   --card-foreground: 248 250 252;
@@ -284,4 +288,4 @@
   h3 {
     @apply text-xl;
   }
-  }
+}
