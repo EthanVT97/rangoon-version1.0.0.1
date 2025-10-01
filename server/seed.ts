@@ -1,5 +1,4 @@
-
-import { storage } from './storage';
+import { storage } from './storage.js'; // Fixed: Added .js extension
 
 async function seedDatabase() {
   console.log('Seeding database...');
