@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, X, Info } from "lucide-react"; // Added X and Info for notification dropdown
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/sidebar";
 import StatsCards from "@/components/stats-cards";
@@ -8,6 +8,7 @@ import ImportLogs from "@/components/import-logs";
 import APIMonitoring from "@/components/api-monitoring";
 import LiveChatWidget from "@/components/live-chat-widget";
 import AutoFixMonitor from "@/components/auto-fix-monitor";
+import { useState } from "react"; // Added useState
 
 interface HealthStatus {
   success: boolean;
@@ -22,9 +23,15 @@ export default function Dashboard() {
 
   const isConnected = health?.success;
 
+  // Added state for mobile sidebar
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  // Added state for notifications dropdown
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
+      {/* Pass mobile sidebar state and setter to Sidebar */}
+      <Sidebar isMobileOpen={isMobileSidebarOpen} setIsMobileOpen={setIsMobileSidebarOpen} />
 
       <main className="flex-1 overflow-y-auto">
         <header className="bg-gradient-to-r from-card to-card/80 border-b border-border/50 sticky top-0 z-10 backdrop-blur-sm bg-card/95">
@@ -52,12 +59,51 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <button className="p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm relative group" data-testid="button-notifications">
-                  <Bell className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                </button>
+                {/* Notifications Button with Dropdown logic */}
+                <div className="relative">
+                  <button 
+                    className="p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm relative group" 
+                    data-testid="button-notifications"
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  >
+                    <Bell className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                  </button>
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-20">
+                      <div className="p-4 border-b border-border flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-foreground font-myanmar">အသိပေးချက်များ</h3>
+                        <button 
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setIsNotificationsOpen(false)}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-start space-x-3 text-muted-foreground">
+                          <Info className="w-5 h-5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-myanmar">
+                              လက်ရှိတွင် အသိပေးချက်များ မရှိပါ။
+                            </p>
+                            <p className="text-xs mt-1 font-myanmar">
+                              အသစ်တင်သွင်းမှုများ သို့မဟုတ် error များရှိပါက ဤနေရာတွင် ပေါ်လာပါမည်။
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                <button className="lg:hidden p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm" data-testid="button-menu">
+
+                {/* Mobile Menu Button */}
+                <button 
+                  className="lg:hidden p-2.5 hover:bg-muted/80 rounded-lg transition-all hover:shadow-sm" 
+                  data-testid="button-menu"
+                  onClick={() => setIsMobileSidebarOpen(true)} // Open sidebar on click
+                >
                   <Menu className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
