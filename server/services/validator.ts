@@ -1,3 +1,4 @@
+// server/services/validator.ts - Improved version with better error messages
 
 interface ValidationRule {
   field: string;
@@ -12,11 +13,14 @@ interface ValidationError {
   field: string;
   message: string;
   row?: number;
+  value?: any;
+  expectedType?: string;
 }
 
 interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
+  warnings?: string[];
 }
 
 class DataValidator {
@@ -71,7 +75,37 @@ class DataValidator {
     }
 
     const errors: ValidationError[] = [];
+    const warnings: string[] = [];
 
+    // Check if data is empty
+    if (!data || data.length === 0) {
+      return {
+        isValid: false,
+        errors: [{ field: 'data', message: 'No data found in the Excel file. Make sure your sheet has data rows.' }]
+      };
+    }
+
+    // Get all column names from the first row
+    const actualColumns = Object.keys(data[0] || {});
+    const expectedColumns = rules.map(r => r.field);
+    const requiredColumns = rules.filter(r => r.required).map(r => r.field);
+
+    // Check for missing required columns
+    const missingColumns = requiredColumns.filter(col => !actualColumns.includes(col));
+    if (missingColumns.length > 0) {
+      errors.push({
+        field: 'columns',
+        message: `Missing required columns: ${missingColumns.join(', ')}. Expected columns: ${requiredColumns.join(', ')}`,
+      });
+    }
+
+    // Check for extra columns (just a warning)
+    const extraColumns = actualColumns.filter(col => !expectedColumns.includes(col));
+    if (extraColumns.length > 0) {
+      warnings.push(`Extra columns found (will be ignored): ${extraColumns.join(', ')}`);
+    }
+
+    // Validate each record
     data.forEach((record, index) => {
       rules.forEach(rule => {
         const value = record[rule.field];
@@ -81,8 +115,10 @@ class DataValidator {
         if (rule.required && (value === null || value === undefined || value === '')) {
           errors.push({
             field: rule.field,
-            message: `${rule.field} is required`,
-            row: rowNumber
+            message: `Required field '${rule.field}' is missing or empty`,
+            row: rowNumber,
+            value: value,
+            expectedType: rule.type
           });
           return;
         }
@@ -92,29 +128,36 @@ class DataValidator {
           return;
         }
 
-        // Type validation
-        if (rule.type && !this.validateType(value, rule.type)) {
-          errors.push({
-            field: rule.field,
-            message: `${rule.field} must be of type ${rule.type}`,
-            row: rowNumber
-          });
+        // Type validation with helpful messages
+        if (rule.type) {
+          const typeValid = this.validateType(value, rule.type);
+          if (!typeValid.isValid) {
+            errors.push({
+              field: rule.field,
+              message: `Field '${rule.field}' has invalid type. ${typeValid.message}`,
+              row: rowNumber,
+              value: value,
+              expectedType: rule.type
+            });
+          }
         }
 
         // Length validation
         if (rule.minLength && typeof value === 'string' && value.length < rule.minLength) {
           errors.push({
             field: rule.field,
-            message: `${rule.field} must be at least ${rule.minLength} characters`,
-            row: rowNumber
+            message: `Field '${rule.field}' must be at least ${rule.minLength} characters (got ${value.length})`,
+            row: rowNumber,
+            value: value
           });
         }
 
         if (rule.maxLength && typeof value === 'string' && value.length > rule.maxLength) {
           errors.push({
             field: rule.field,
-            message: `${rule.field} must not exceed ${rule.maxLength} characters`,
-            row: rowNumber
+            message: `Field '${rule.field}' must not exceed ${rule.maxLength} characters (got ${value.length})`,
+            row: rowNumber,
+            value: value
           });
         }
 
@@ -122,8 +165,9 @@ class DataValidator {
         if (rule.pattern && typeof value === 'string' && !rule.pattern.test(value)) {
           errors.push({
             field: rule.field,
-            message: `${rule.field} format is invalid`,
-            row: rowNumber
+            message: `Field '${rule.field}' format is invalid`,
+            row: rowNumber,
+            value: value
           });
         }
       });
@@ -131,24 +175,68 @@ class DataValidator {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
+      warnings: warnings.length > 0 ? warnings : undefined
     };
   }
 
-  private validateType(value: any, type: string): boolean {
+  private validateType(value: any, type: string): { isValid: boolean; message?: string } {
     switch (type) {
       case 'string':
-        return typeof value === 'string';
+        if (typeof value !== 'string') {
+          return { 
+            isValid: false, 
+            message: `Expected text, got ${typeof value}. Value: "${value}"` 
+          };
+        }
+        return { isValid: true };
+        
       case 'number':
-        return !isNaN(Number(value)) && isFinite(Number(value));
+        const num = Number(value);
+        if (isNaN(num) || !isFinite(num)) {
+          return { 
+            isValid: false, 
+            message: `Expected a number, got "${value}". Make sure cells are formatted as numbers, not text.` 
+          };
+        }
+        return { isValid: true };
+        
       case 'date':
-        return !isNaN(Date.parse(value));
+        const dateValid = !isNaN(Date.parse(value));
+        if (!dateValid) {
+          return { 
+            isValid: false, 
+            message: `Expected a date in format YYYY-MM-DD (e.g., 2025-10-31), got "${value}"` 
+          };
+        }
+        return { isValid: true };
+        
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return typeof value === 'string' && emailRegex.test(value);
+        if (typeof value !== 'string' || !emailRegex.test(value)) {
+          return { 
+            isValid: false, 
+            message: `Expected a valid email address, got "${value}"` 
+          };
+        }
+        return { isValid: true };
+        
       default:
-        return true;
+        return { isValid: true };
     }
+  }
+
+  // Helper method to get expected format for a module
+  getExpectedFormat(module: string): string[] | null {
+    const rules = this.validationRules[module];
+    if (!rules) return null;
+    
+    return rules.map(rule => {
+      let format = rule.field;
+      if (rule.required) format += ' (required)';
+      if (rule.type) format += ` [${rule.type}]`;
+      return format;
+    });
   }
 }
 
