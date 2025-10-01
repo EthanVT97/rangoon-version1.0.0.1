@@ -7,10 +7,11 @@
   "workspaces": [
     "client"
   ],
+{
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build client",
+    "build:client": "vite build",
     "build:server": "tsc --project tsconfig.server.json",
     "install:client": "cd client && npm install --include=dev",
     "start": "node dist/server/index.js",
@@ -19,6 +20,8 @@
     "db:migrate": "tsx server/migrate.ts",
     "db:seed": "tsx server/seed.ts",
     "db:studio": "drizzle-kit studio"
+  }
+}
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
