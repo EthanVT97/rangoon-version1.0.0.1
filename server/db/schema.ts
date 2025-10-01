@@ -1,73 +1,48 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
+import { pgTable, text, timestamp, integer, jsonb, uuid } from "drizzle-orm/pg-core";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
+export const stagingErpnextImports = pgTable("staging_erpnext_imports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  filename: text("filename").notNull(),
+  module: text("module").notNull(),
+  recordCount: integer("record_count").notNull(),
+  parsedData: jsonb("parsed_data").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
 
-const sqlClient = neon(connectionString);
-const db = drizzle(sqlClient);
+export const apiLogs = pgTable("api_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stagingId: uuid("staging_id"), // ✓ Fixed: This now correctly maps to staging_id column
+  filename: text("filename").notNull(),
+  module: text("module").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  recordCount: integer("record_count").notNull(),
+  successCount: integer("success_count").notNull(),
+  failureCount: integer("failure_count").notNull(),
+  status: text("status").notNull(),
+  erpnextResponse: jsonb("erpnext_response"),
+  errors: jsonb("errors"),
+  responseTime: integer("response_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
-async function fixStagingIdColumn() {
-  console.log("Checking api_logs table schema...");
-  
-  try {
-    // Check if staging_id column exists
-    const result = await db.execute(sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'api_logs' 
-      AND column_name = 'staging_id'
-    `);
+export const configuration = pgTable("configuration", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
-    if (result.rows.length === 0) {
-      console.log("Adding staging_id column to api_logs table...");
-      
-      // Add the column
-      await db.execute(sql`
-        ALTER TABLE api_logs 
-        ADD COLUMN staging_id uuid
-      `);
-      
-      // Add index for performance
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_api_logs_staging_id 
-        ON api_logs(staging_id)
-      `);
-      
-      console.log("✓ staging_id column added successfully");
-    } else {
-      console.log("✓ staging_id column already exists");
-    }
-
-    // Verify the fix
-    const verify = await db.execute(sql`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'api_logs'
-      ORDER BY ordinal_position
-    `);
-    
-    console.log("\nCurrent api_logs schema:");
-    verify.rows.forEach((row: any) => {
-      console.log(`  - ${row.column_name}: ${row.data_type}`);
-    });
-    
-  } catch (error) {
-    console.error("Migration failed:", error);
-    throw error;
-  }
-}
-
-// Run the migration
-fixStagingIdColumn()
-  .then(() => {
-    console.log("\n✓ Migration completed successfully");
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error("\n✗ Migration failed:", error);
-    process.exit(1);
-  });
+export const excelTemplates = pgTable("excel_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  module: text("module").notNull().unique(),
+  templateName: text("template_name").notNull(),
+  columns: jsonb("columns").notNull(),
+  sampleData: jsonb("sample_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
