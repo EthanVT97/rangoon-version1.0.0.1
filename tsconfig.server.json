@@ -3,11 +3,11 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "./dist",
+    "outDir": "./dist/server",          // build output ကို dist/server ထဲထုတ်မယ်
+    "rootDir": "./server",              // server/ folder ကနေ source root သတ်မှတ်
     "noEmit": false,
-    "rootDir": ".",
     "allowImportingTsExtensions": false,
-    "skipLibCheck": true
+    "skipLibCheck": true                // type conflict skip
   },
   "include": ["server/**/*", "shared/**/*"],
   "exclude": ["node_modules", "client"]
