@@ -83,17 +83,17 @@ export default function LogDetailDialog({ open, onOpenChange, log }: LogDetailDi
           <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Total Records</p>
-              <p className="text-2xl font-bold text-foreground">{log.recordCount}</p>
+              <p className="text-2xl font-bold text-foreground">{log.recordCount ?? 0}</p>
             </div>
 
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Successful</p>
-              <p className="text-2xl font-bold text-success">{log.successCount}</p>
+              <p className="text-2xl font-bold text-success">{log.successCount ?? 0}</p>
             </div>
 
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Failed</p>
-              <p className="text-2xl font-bold text-destructive">{log.failureCount}</p>
+              <p className="text-2xl font-bold text-destructive">{log.failureCount ?? 0}</p>
             </div>
           </div>
 
@@ -144,4 +144,4 @@ export default function LogDetailDialog({ open, onOpenChange, log }: LogDetailDi
       </DialogContent>
     </Dialog>
   );
-}
+      }
