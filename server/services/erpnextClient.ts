@@ -27,7 +27,7 @@ class ERPNextClient {
   public initialized: boolean = false;
 
   async initialize() {
-    // Fixed: Reset initialization state and client before attempting to re-initialize
+    // Reset initialization state and client before attempting to re-initialize
     this.initialized = false;
     this.client = null;
     this.baseURL = '';
@@ -35,32 +35,25 @@ class ERPNextClient {
     this.apiSecret = '';
 
     try {
-      // Try environment variables first (for backward compatibility)
-      this.baseURL = process.env.ERPNEXT_BASE_URL || '';
-      this.apiKey = process.env.ERPNEXT_API_KEY || '';
-      this.apiSecret = process.env.ERPNEXT_API_SECRET || '';
+      // Prioritize fetching credentials from the database
+      const dbBaseUrl = await storage.getConfiguration("erpnext_base_url");
+      const dbApiKey = await storage.getConfiguration("erpnext_api_key");
+      const dbApiSecret = await storage.getConfiguration("erpnext_api_secret");
 
-      // If not in env, try database
-      if (!this.baseURL || !this.apiKey || !this.apiSecret) {
-        const baseUrl = await storage.getConfiguration("erpnext_base_url");
-        const apiKey = await storage.getConfiguration("erpnext_api_key");
-        const apiSecret = await storage.getConfiguration("erpnext_api_secret");
-
-        this.baseURL = baseUrl || '';
-        this.apiKey = apiKey || '';
-        this.apiSecret = apiSecret || '';
-      }
+      // Use database values if available, otherwise fallback to environment variables
+      this.baseURL = dbBaseUrl || process.env.ERPNEXT_BASE_URL || '';
+      this.apiKey = dbApiKey || process.env.ERPNEXT_API_KEY || '';
+      this.apiSecret = dbApiSecret || process.env.ERPNEXT_API_SECRET || '';
 
       if (this.baseURL && this.apiKey && this.apiSecret) {
         // Ensure baseURL doesn't end with slash
         this.baseURL = this.baseURL.replace(/\/$/, '');
         
-        // Fixed: Validate URL format
+        // Validate URL format
         try {
           new URL(this.baseURL);
         } catch (urlError) {
           console.error('Invalid ERPNext base URL format provided:', this.baseURL, urlError);
-          // Keep initialized as false if URL is invalid
           return; 
         }
         
@@ -74,14 +67,12 @@ class ERPNextClient {
         });
         
         console.log('ERPNext client initialized successfully');
-        this.initialized = true; // Fixed: Only set to true if client setup is successful
+        this.initialized = true; 
       } else {
-        console.log('ERPNext credentials not fully configured. Client remains uninitialized.');
-        // this.initialized remains false
+        console.log('ERPNext credentials not fully configured in database or environment variables. Client remains uninitialized.');
       }
     } catch (error) {
       console.error('Failed to initialize ERPNext client due to an unexpected error:', error);
-      // this.initialized remains false
     }
   }
 
@@ -90,8 +81,8 @@ class ERPNextClient {
     try {
       // Ensure client is initialized before making a request
       if (!this.initialized || !this.client) {
-        await this.initialize();
-        if (!this.initialized || !this.client) { // Re-check after attempt to initialize
+        await this.initialize(); // Attempt to initialize
+        if (!this.initialized || !this.client) { // Re-check after initialization attempt
           return {
             success: false,
             error: 'ERPNext client not configured. Please add your API credentials in Settings.',
@@ -195,4 +186,4 @@ export function getERPNextClient(): ERPNextClient {
     client = new ERPNextClient();
   }
   return client;
-  }
+}
