@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
-  dialect: 'postgresql', // <-- ဒီ line ကို ထည့်သွင်းပါ သို့မဟုတ် ရှိပြီးသားဖြစ်အောင် စစ်ဆေးပါ။
+  dialect: 'postgresql', // <-- ဒီ line ကို အတိအကျ ထည့်သွင်းထားပါ
 } satisfies Config;
