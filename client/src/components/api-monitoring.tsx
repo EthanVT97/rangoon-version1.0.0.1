@@ -1,13 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, XCircle, AlertCircle, Activity, Database, Wifi } from "lucide-react";
 import type { ApiLog } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface HealthStatus {
   success: boolean;
   error?: string;
   responseTime?: number;
   statusCode?: number;
+}
+
+interface EndpointHealth {
+  name: string;
+  avgTime: string;
+  status: "healthy" | "slow" | "unresponsive";
 }
 
 export default function APIMonitoring() {
@@ -18,6 +24,7 @@ export default function APIMonitoring() {
 
   const { data: logs } = useQuery<ApiLog[]>({
     queryKey: ["/api/logs"],
+    refetchInterval: 10000, // Refresh logs every 10 seconds
   });
 
   const [lastCheck, setLastCheck] = useState(new Date());
@@ -31,19 +38,48 @@ export default function APIMonitoring() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const avgResponseTime = (logs?.reduce((acc, log) => acc + (log.responseTime || 0), 0) || 0) / (logs?.length || 1);
-  const successRate = ((logs?.filter((log) => log.status === "success").length || 0) / (logs?.length || 1)) * 100;
+  // Fixed: Dynamically generate endpoint health based on logs
+  const endpointHealthData: EndpointHealth[] = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
+
+    const endpointMap: { [key: string]: { totalTime: number; count: number; failedCount: number } } = {};
+
+    logs.forEach(log => {
+      // Filter out overall import logs, focus on individual endpoint calls
+      if (!log.endpoint || log.recordCount > 1) return; 
+
+      if (!endpointMap[log.endpoint]) {
+        endpointMap[log.endpoint] = { totalTime: 0, count: 0, failedCount: 0 };
+      }
+      endpointMap[log.endpoint].totalTime += log.responseTime || 0;
+      endpointMap[log.endpoint].count += 1;
+      if (log.status === 'failed') {
+        endpointMap[log.endpoint].failedCount += 1;
+      }
+    });
+
+    return Object.entries(endpointMap).map(([endpoint, stats]) => {
+      const avgTimeMs = stats.count > 0 ? stats.totalTime / stats.count : 0;
+      let status: EndpointHealth['status'] = 'healthy';
+      if (avgTimeMs > 400) status = 'slow'; // Threshold for "slow"
+      if (stats.failedCount > 0 && stats.failedCount === stats.count) status = 'unresponsive'; // All failed
+      if (stats.count === 0) status = 'unresponsive'; // No calls
+
+      return {
+        name: endpoint,
+        avgTime: `${Math.round(avgTimeMs)}ms`,
+        status: status,
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically for consistency
+  }, [logs]);
+
 
   const isConnected = healthStatus?.success || false;
   const responseTime = healthStatus?.responseTime || 0;
 
-  const endpoints = [
-    { name: "/api/resource/Item", avgTime: "235ms", status: "healthy" },
-    { name: "/api/resource/Customer", avgTime: "198ms", status: "healthy" },
-    { name: "/api/resource/Sales Order", avgTime: "312ms", status: "healthy" },
-    { name: "/api/resource/Sales Invoice", avgTime: "456ms", status: "slow" },
-    { name: "/api/resource/Payment Entry", avgTime: "267ms", status: "healthy" },
-  ];
+  const totalLogs = logs?.length || 0;
+  const successCountLogs = logs?.filter((log) => log.status === "success" || log.status === "completed").length || 0;
+  const successRate = totalLogs > 0 ? (successCountLogs / totalLogs) * 100 : 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -114,7 +150,7 @@ export default function APIMonitoring() {
 
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <span className="text-sm font-medium text-foreground font-myanmar">Requests Today</span>
-            <span className="text-sm font-semibold text-foreground">{logs?.length || 0}</span>
+            <span className="text-sm font-semibold text-foreground">{totalLogs}</span>
           </div>
         </div>
       </div>
@@ -122,37 +158,46 @@ export default function APIMonitoring() {
       <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-lg overflow-hidden">
         <div className="p-6 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
           <h3 className="text-lg font-semibold text-foreground font-myanmar">Endpoint Health</h3>
-          <p className="text-sm text-muted-foreground mt-1">Individual endpoint monitoring</p>
+          <p className="text-sm text-muted-foreground mt-1">Individual ERPNext endpoint monitoring</p>
         </div>
 
         <div className="p-6 space-y-3">
-          {endpoints.map((endpoint) => (
-            <div
-              key={endpoint.name}
-              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-            >
-              <div className="flex items-center space-x-3">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    endpoint.status === "healthy" ? "bg-success" : "bg-warning"
-                  }`}
-                />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{endpoint.name}</p>
-                  <p className="text-xs text-muted-foreground">{endpoint.avgTime} avg</p>
-                </div>
-              </div>
-              <span
-                className={`text-xs font-medium ${
-                  endpoint.status === "healthy" ? "text-success" : "text-warning"
-                }`}
+          {endpointHealthData.length > 0 ? (
+            endpointHealthData.map((endpoint) => (
+              <div
+                key={endpoint.name}
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
               >
-                {endpoint.status === "healthy" ? "Healthy" : "Slow"}
-              </span>
+                <div className="flex items-center space-x-3">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      endpoint.status === "healthy" ? "bg-success" :
+                      endpoint.status === "slow" ? "bg-warning" : "bg-destructive"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{endpoint.name}</p>
+                    <p className="text-xs text-muted-foreground">{endpoint.avgTime} avg</p>
+                  </div>
+                </div>
+                <span
+                  className={`text-xs font-medium ${
+                    endpoint.status === "healthy" ? "text-success" :
+                    endpoint.status === "slow" ? "text-warning" : "text-destructive"
+                  }`}
+                >
+                  {endpoint.status === "healthy" ? "Healthy" :
+                   endpoint.status === "slow" ? "Slow" : "Unresponsive"}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-muted-foreground font-myanmar">
+              No endpoint data available.
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
   );
-}
+        }
