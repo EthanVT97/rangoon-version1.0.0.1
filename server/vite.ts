@@ -3,10 +3,18 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
+
+// Dynamically import vite config only in development
+async function getViteConfig() {
+  if (process.env.NODE_ENV !== "production") {
+    const module = await import("../vite.config.js");
+    return module.default;
+  }
+  return {};
+}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -25,6 +33,8 @@ export async function setupVite(app: Express, server: Server) {
     hmr: { server },
     allowedHosts: true as const,
   };
+
+  const viteConfig = await getViteConfig();
 
   const vite = await createViteServer({
     ...viteConfig,
@@ -67,15 +77,20 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // In production, static files are in dist/public (not dist/server/public)
+  // ✅ Fixed: Use process.cwd() to get project root, then go to dist/public
   const distPath = path.resolve(process.cwd(), "dist", "public");
 
   if (!fs.existsSync(distPath)) {
+    console.error(`Build directory not found: ${distPath}`);
+    console.error(`Current working directory: ${process.cwd()}`);
+    console.error(`Available directories:`, fs.readdirSync(process.cwd()));
+    
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
 
+  console.log(`Serving static files from: ${distPath}`);
   app.use(express.static(distPath));
 
   app.use("*", (_req, res) => {
