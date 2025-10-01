@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { storage } from '../storage.js';
+import { storage } from '../storage.js'; // Fixed: Added .js extension
 
 export interface ERPNextResponse {
   success: boolean;
