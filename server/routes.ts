@@ -1,3 +1,4 @@
+// server/routes.ts
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -85,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const stagingImport = await storage.getStagingImport(req.params.id);
       if (!stagingImport) {
-        return res.status(404).json({ message: "Import not found" }); // Fixed: Corrected closing parenthesis and bracket
+        return res.status(404).json({ message: "Import not found" });
       }
       res.json(stagingImport);
     } catch (error: any) {
@@ -254,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db.select().from(configuration).limit(1);
 
-      const tables = await Promise.all([
+      await Promise.all([
         db.select().from(stagingErpnextImports).limit(1),
         db.select().from(apiLogs).limit(1),
         db.select().from(excelTemplates).limit(1)
@@ -283,8 +284,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 }
 
 async function processImport(stagingId: string, module: string, data: Record<string, any>[]) {
-  const processStartTime = Date.now(); // Fixed: Record start time for overall process
+  const processStartTime = Date.now();
+  let stagingImport;
+  let filename = "unknown"; // Initialize filename
+
   try {
+    stagingImport = await storage.getStagingImport(stagingId);
+    if (stagingImport) {
+      filename = stagingImport.filename; // Fixed: Fetch filename once
+    }
+
     await storage.updateStagingImportStatus(stagingId, "processing");
 
     const client = getERPNextClient();
@@ -342,7 +351,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
         const logSuccess = response.success || (autoFixResult?.success || false);
         await storage.createApiLog({
           stagingId,
-          filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
+          filename: filename, // Used pre-fetched filename
           module,
           endpoint: `/api/resource/${module}`,
           method: "POST",
@@ -367,7 +376,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
         });
         await storage.createApiLog({
           stagingId,
-          filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
+          filename: filename, // Used pre-fetched filename
           module,
           endpoint: `/api/resource/${module}`,
           method: "POST",
@@ -383,13 +392,13 @@ async function processImport(stagingId: string, module: string, data: Record<str
     }
 
     const processEndTime = Date.now();
-    const overallResponseTime = processEndTime - processStartTime; // Fixed: Calculate overall response time
+    const overallResponseTime = processEndTime - processStartTime;
     const finalStatus = failureCount === 0 ? "completed" : "failed";
     await storage.updateStagingImportStatus(stagingId, finalStatus, new Date());
 
     await storage.createApiLog({
       stagingId,
-      filename: (await storage.getStagingImport(stagingId))?.filename || "unknown",
+      filename: filename, // Used pre-fetched filename
       module,
       endpoint: `/api/resource/${module}`,
       method: "POST",
@@ -399,7 +408,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: finalStatus,
       erpnextResponse: { summary: `Processed ${data.length} records` },
       errors: errors.length > 0 ? errors : null,
-      responseTime: overallResponseTime, // Fixed: Use calculated overall response time
+      responseTime: overallResponseTime,
     });
   } catch (error: any) {
     const processEndTime = Date.now();
@@ -408,7 +417,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
     console.error("Error processing import:", error);
     await storage.createApiLog({
       stagingId,
-      filename: "unknown",
+      filename: filename, // Used pre-fetched filename
       module,
       endpoint: `/api/resource/${module}`,
       method: "POST",
@@ -418,7 +427,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
       status: "failed",
       erpnextResponse: null,
       errors: [{ message: `Overall processing failed: ${error.message || "Unknown error"}` }],
-      responseTime: overallResponseTime, // Fixed: Use calculated overall response time
+      responseTime: overallResponseTime,
     });
   }
-        }
+           }
