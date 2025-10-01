@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
-import { storage } from "./storage";
-import { excelParser } from "./services/excelParser";
-import { dataValidator } from "./services/validator";
-import { getERPNextClient } from "./services/erpnextClient";
-import { autoFixMiddleware } from "./services/autoFixMiddleware";
+import { storage } from "./storage.js";
+import { excelParser } from "./services/excelParser.js";
+import { dataValidator } from "./services/validator.js";
+import { getERPNextClient } from "./services/erpnextClient.js";
+import { autoFixMiddleware } from "./services/autoFixMiddleware.js";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema";
+import { configuration, stagingErpnextImports, apiLogs, excelTemplates } from "./db/schema.js";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -415,4 +415,4 @@ async function processImport(stagingId: string, module: string, data: Record<str
       responseTime: 0,
     });
   }
-        }
+          }
