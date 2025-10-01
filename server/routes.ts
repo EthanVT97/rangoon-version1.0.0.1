@@ -1,10 +1,10 @@
-// server/routes.ts
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage.js";
 import { excelParser } from "./services/excelParser.js";
 import { dataValidator } from "./services/validator.js";
+import { fieldMapper } from "./services/fieldMapper.js"; // Add this import
 import { getERPNextClient } from "./services/erpnextClient.js";
 import { autoFixMiddleware } from "./services/autoFixMiddleware.js";
 import { drizzle } from "drizzle-orm/neon-http";
@@ -20,7 +20,6 @@ const sql = neon(connectionString);
 const db = drizzle(sql);
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Fixed: Added ERPNext specific environment variables
   const requiredEnvVars = ['DATABASE_URL', 'ERPNEXT_BASE_URL', 'ERPNEXT_API_KEY', 'ERPNEXT_API_SECRET'];
   const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
@@ -41,6 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
+  // UPDATED: Enhanced upload endpoint with field mapping
   app.post("/api/upload-excel", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
@@ -52,30 +52,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Module is required" });
       }
 
+      console.log(`\n📁 Processing upload: ${req.file.originalname} for module: ${module}`);
+
+      // Parse Excel file
       const parsed = excelParser.parseFile(req.file.buffer);
-      const validation = dataValidator.validate(module, parsed.data);
+      console.log(`📊 Parsed ${parsed.rowCount} rows with columns:`, parsed.columns);
+
+      // Map fields from ERPNext names to simple names
+      const mappedData = fieldMapper.mapData(module, parsed.data);
+      console.log(`🔄 Mapped data. First row:`, JSON.stringify(mappedData[0], null, 2));
+
+      // Validate mapped data
+      const validation = dataValidator.validate(module, mappedData);
 
       if (!validation.isValid) {
+        console.log(`❌ Validation failed with ${validation.errors.length} errors`);
         return res.status(400).json({
           message: "Validation failed",
           errors: validation.errors,
+          warnings: validation.warnings
         });
       }
 
+      if (validation.warnings) {
+        console.log(`⚠️  Warnings:`, validation.warnings);
+      }
+
+      // Create staging import with MAPPED data
       const stagingImport = await storage.createStagingImport({
         filename: req.file.originalname,
         module,
         recordCount: parsed.rowCount,
-        parsedData: parsed.data,
+        parsedData: mappedData, // Use mapped data instead of raw data
         status: "pending",
       });
 
-      processImport(stagingImport.id, module, parsed.data).catch(console.error);
+      console.log(`✅ Created staging import: ${stagingImport.id}`);
+
+      // Process import in background
+      processImport(stagingImport.id, module, mappedData).catch(console.error);
 
       res.json({
         message: "File uploaded successfully",
         stagingId: stagingImport.id,
         recordCount: parsed.rowCount,
+        warnings: validation.warnings
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Add endpoint to show field mappings (for debugging)
+  app.get("/api/field-mappings/:module", async (req, res) => {
+    try {
+      const { module } = req.params;
+      const mappings = fieldMapper.getMappings(module);
+      
+      if (!mappings) {
+        return res.status(404).json({ message: "Module not found" });
+      }
+
+      const formattedMappings = mappings.map(m => ({
+        erpnextFields: Array.isArray(m.erpnextField) ? m.erpnextField : [m.erpnextField],
+        simpleField: m.simpleField,
+        hasTransform: !!m.transform
+      }));
+
+      res.json({
+        module,
+        mappings: formattedMappings
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -286,12 +333,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 async function processImport(stagingId: string, module: string, data: Record<string, any>[]) {
   const processStartTime = Date.now();
   let stagingImport;
-  let filename = "unknown"; // Initialize filename
+  let filename = "unknown";
 
   try {
     stagingImport = await storage.getStagingImport(stagingId);
     if (stagingImport) {
-      filename = stagingImport.filename; // Fixed: Fetch filename once
+      filename = stagingImport.filename;
     }
 
     await storage.updateStagingImportStatus(stagingId, "processing");
@@ -351,7 +398,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
         const logSuccess = response.success || (autoFixResult?.success || false);
         await storage.createApiLog({
           stagingId,
-          filename: filename, // Used pre-fetched filename
+          filename: filename,
           module,
           endpoint: `/api/resource/${module}`,
           method: "POST",
@@ -376,7 +423,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
         });
         await storage.createApiLog({
           stagingId,
-          filename: filename, // Used pre-fetched filename
+          filename: filename,
           module,
           endpoint: `/api/resource/${module}`,
           method: "POST",
@@ -398,7 +445,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
 
     await storage.createApiLog({
       stagingId,
-      filename: filename, // Used pre-fetched filename
+      filename: filename,
       module,
       endpoint: `/api/resource/${module}`,
       method: "POST",
@@ -417,7 +464,7 @@ async function processImport(stagingId: string, module: string, data: Record<str
     console.error("Error processing import:", error);
     await storage.createApiLog({
       stagingId,
-      filename: filename, // Used pre-fetched filename
+      filename: filename,
       module,
       endpoint: `/api/resource/${module}`,
       method: "POST",
@@ -430,4 +477,4 @@ async function processImport(stagingId: string, module: string, data: Record<str
       responseTime: overallResponseTime,
     });
   }
-           }
+        }
