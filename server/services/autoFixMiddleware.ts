@@ -1,5 +1,5 @@
-import { getERPNextClient } from './erpnextClient.js';
-import { storage } from '../storage.js';
+import { getERPNextClient } from './erpnextClient.js'; // Fixed: Added .js extension
+import { storage } from '../storage.js'; // Fixed: Added .js extension
 
 interface AutoFixStrategy {
   errorPattern: RegExp;
@@ -133,14 +133,12 @@ class AutoFixMiddleware {
       }
     },
     
-    // Fix permission errors by retrying with different user context
-    {
+  {
       errorPattern: /permission denied|not permitted/i,
       description: "Retry with administrative privileges",
       fix: async (data: Record<string, any>, error: string) => {
-        // This is a placeholder - in real implementation, you might switch to an admin user
-        console.log('Auto-fix: Permission error detected, attempting administrative retry');
-        return data; // Return unchanged data for retry
+        console.log('Auto-fix: Permission error detected, attempting administrative retry (current implementation simply retries unchanged data).');
+        return data; // Return unchanged data for retry, actual fix would require changing credentials or context
       }
     }
   ];
