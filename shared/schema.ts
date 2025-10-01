@@ -1,11 +1,11 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, jsonb, uuid } from "drizzle-orm/pg-core"; // Fixed: Changed varchar to uuid
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Staging table for parsed Excel data before ERPNext import
 export const stagingErpnextImports = pgTable("staging_erpnext_imports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(), // Fixed: Using uuid and defaultRandom()
   filename: text("filename").notNull(),
   module: text("module").notNull(), // 'Item', 'Customer', 'Sales Order', 'Sales Invoice', 'Payment Entry'
   recordCount: integer("record_count").notNull(),
@@ -17,8 +17,8 @@ export const stagingErpnextImports = pgTable("staging_erpnext_imports", {
 
 // Logging table for API responses and errors
 export const apiLogs = pgTable("api_logs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  stagingId: varchar("staging_id").references(() => stagingErpnextImports.id),
+  id: uuid("id").primaryKey().defaultRandom(), // Fixed: Using uuid and defaultRandom()
+  stagingId: uuid("staging_id").references(() => stagingErpnextImports.id), // Fixed: Using uuid
   filename: text("filename").notNull(),
   module: text("module").notNull(),
   endpoint: text("endpoint").notNull(), // ERPNext API endpoint
@@ -30,25 +30,28 @@ export const apiLogs = pgTable("api_logs", {
   erpnextResponse: jsonb("erpnext_response"), // API response from ERPNext
   errors: jsonb("errors"), // Array of error objects with row/column details
   responseTime: integer("response_time"), // Response time in ms
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(), // Fixed: Renamed to createdAt
 });
 
 // Configuration table
 export const configuration = pgTable("configuration", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(), // Fixed: Using uuid and defaultRandom()
   key: text("key").notNull().unique(),
   value: text("value").notNull(),
+  description: text("description"), // Added description as it's in storage.ts
+  createdAt: timestamp("created_at").defaultNow().notNull(), // Added createdAt as it's common for audit
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Templates for Excel downloads
 export const excelTemplates = pgTable("excel_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().defaultRandom(), // Fixed: Using uuid and defaultRandom()
   module: text("module").notNull().unique(), // 'Item', 'Customer', etc.
   templateName: text("template_name").notNull(),
   columns: jsonb("columns").notNull(), // Array of column definitions
   sampleData: jsonb("sample_data"), // Optional sample rows
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(), // Added updatedAt as it's in storage.ts
 });
 
 // Insert schemas
@@ -59,17 +62,19 @@ export const insertStagingImportSchema = createInsertSchema(stagingErpnextImport
 
 export const insertApiLogSchema = createInsertSchema(apiLogs).omit({
   id: true,
-  timestamp: true,
+  createdAt: true, // Fixed: Omit createdAt
 });
 
 export const insertConfigurationSchema = createInsertSchema(configuration).omit({
   id: true,
+  createdAt: true, // Omit createdAt for inserts if defaultNow
   updatedAt: true,
 });
 
 export const insertExcelTemplateSchema = createInsertSchema(excelTemplates).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 // Types
