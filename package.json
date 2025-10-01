@@ -21,8 +21,10 @@
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "tsx server/migrate.ts",
+    "db:setup": "tsx scripts/setup-database.ts",
     "db:seed": "tsx server/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:fix": "tsx scripts/fix-api-logs-schema.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
