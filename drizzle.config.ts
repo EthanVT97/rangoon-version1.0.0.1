@@ -8,6 +8,5 @@ export default {
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
-  // Fixed: Add 'dialect' property for clearer configuration (essential for some drivers)
-  dialect: 'postgresql', 
+  dialect: 'postgresql', // <-- ဒီ line ကို ထည့်သွင်းပါ သို့မဟုတ် ရှိပြီးသားဖြစ်အောင် စစ်ဆေးပါ။
 } satisfies Config;
