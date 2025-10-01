@@ -37,7 +37,7 @@
 
 .dark {
   /* Dark Mode Colors */
-  --background: 15 23 42;
+  --background: 220 30% 15%; /* Fixed: Changed to a more distinct dark blue HSL value */
   --foreground: 248 250 252;
   --card: 30 41 59;
   --card-foreground: 248 250 252;
@@ -284,4 +284,4 @@
   h3 {
     @apply text-xl;
   }
-    }
+  }
