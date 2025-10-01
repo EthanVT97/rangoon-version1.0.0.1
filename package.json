@@ -23,6 +23,7 @@
     "db:migrate": "tsx server/migrate.ts",
     "db:setup": "tsx scripts/setup-database.ts",
     "db:fix-logs": "tsx scripts/fix-api-logs-columns.ts",
+    "db:cleanup": "tsx scripts/cleanup-api-logs.ts",
     "db:seed": "tsx server/seed.ts",
     "db:studio": "drizzle-kit studio",
     "db:fix": "tsx scripts/fix-api-logs-schema.ts"
