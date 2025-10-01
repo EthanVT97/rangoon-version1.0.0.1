@@ -38,7 +38,6 @@ export default function APIMonitoring() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  // Fixed: Dynamically generate endpoint health based on logs
   const endpointHealthData: EndpointHealth[] = useMemo(() => {
     if (!logs || logs.length === 0) return [];
 
@@ -46,12 +45,13 @@ export default function APIMonitoring() {
 
     logs.forEach(log => {
       // Filter out overall import logs, focus on individual endpoint calls
-      if (!log.endpoint || (log.recordCount && log.recordCount > 1)) return; 
+      // recordCount is notNull() and has a default of 0 according to schema, so direct comparison is fine.
+      if (!log.endpoint || log.recordCount > 1) return; 
 
       if (!endpointMap[log.endpoint]) {
         endpointMap[log.endpoint] = { totalTime: 0, count: 0, failedCount: 0 };
       }
-      endpointMap[log.endpoint].totalTime += log.responseTime || 0;
+      endpointMap[log.endpoint].totalTime += log.responseTime; // responseTime is notNull()
       endpointMap[log.endpoint].count += 1;
       if (log.status === 'failed') {
         endpointMap[log.endpoint].failedCount += 1;
@@ -75,7 +75,7 @@ export default function APIMonitoring() {
 
 
   const isConnected = healthStatus?.success || false;
-  const responseTime = healthStatus?.responseTime || 0;
+  const responseTime = healthStatus?.responseTime || 0; // healthStatus?.responseTime can be undefined
 
   const totalLogs = logs?.length || 0;
   const successCountLogs = logs?.filter((log) => log.status === "success" || log.status === "completed").length || 0;
